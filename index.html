@@ -57,7 +57,17 @@
       font-size: 1rem;
     }
     
-    /* ========== AUTH BUTTONS ========== */
+    .architecture-badge {
+      display: inline-block;
+      background: rgba(107, 140, 255, 0.2);
+      border: 1px solid var(--accent-hope);
+      padding: 5px 15px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      margin-top: 10px;
+      color: var(--accent-hope);
+    }
+    
     .auth-buttons {
       position: absolute;
       top: 40px;
@@ -82,7 +92,6 @@
       border-color: var(--accent-hope);
     }
     
-    /* ========== USER INFO ========== */
     .user-info {
       position: absolute;
       top: 40px;
@@ -94,7 +103,6 @@
       color: var(--text-secondary);
     }
     
-    /* ========== NOTIFICATIONS ========== */
     .notification-bell {
       position: absolute;
       top: 40px;
@@ -170,7 +178,6 @@
       width: 100%;
     }
     
-    /* ========== MODAL AUTH ========== */
     .modal {
       display: none;
       position: fixed;
@@ -389,7 +396,6 @@
       color: var(--text-secondary);
     }
     
-    /* ========== DEBUG CONSOLE ========== */
     .debug-console {
       position: fixed;
       bottom: 0;
@@ -417,6 +423,7 @@
     .debug-line.success { color: #70d6a3; }
     .debug-line.error { color: #ff5555; }
     .debug-line.info { color: #6b8cff; }
+    .debug-line.gateway { color: #ffb86c; }
     
     @media (max-width: 600px) {
       h1 {
@@ -450,18 +457,16 @@
   <header>
     <h1>Confidence Book</h1>
     <p class="tagline">Ton refuge émotionnel anonyme</p>
+    <div class="architecture-badge">⚡ NEXUS AXION 3.5 - API Gateway</div>
     
-    <!-- Auth Buttons OU User Info -->
     <div id="authContainer"></div>
     
-    <!-- Notification Bell -->
     <div class="notification-bell" id="notificationBell">
       🔔
       <span class="notification-badge" id="notificationBadge">0</span>
     </div>
   </header>
 
-  <!-- Auth Modal -->
   <div class="modal" id="authModal">
     <div class="modal-content">
       <h2 id="modalTitle">S'inscrire</h2>
@@ -475,13 +480,11 @@
     </div>
   </div>
 
-  <!-- Notification Panel -->
   <div class="notification-panel" id="notificationPanel">
     <h2 style="margin-bottom: 20px;">Notifications</h2>
     <div id="notificationsList"></div>
   </div>
 
-  <!-- Chapitres émotionnels -->
   <section class="chapters">
     <div class="chapter-btn active" data-chapter="all">
       <div style="font-size: 2rem; margin-bottom: 10px;">🌌</div>
@@ -505,7 +508,6 @@
     </div>
   </section>
 
-  <!-- Formulaire publication -->
   <section class="publish-form" id="publishForm">
     <h2 style="margin-bottom: 20px;">Partage ton histoire</h2>
     <textarea 
@@ -525,14 +527,12 @@
     </button>
   </section>
 
-  <!-- Liste des confidences -->
   <section id="confidencesList"></section>
 
-  <!-- Debug Console -->
   <div class="debug-console" id="debugConsole"></div>
 
   <script>
-    // ========== DEBUG LOGGER ==========
+    // ========== DEBUG LOGGER (Amélioré pour API Gateway) ==========
     const Debug = {
       enabled: true,
       log(message, type = 'info') {
@@ -550,10 +550,10 @@
       
       success(msg) { this.log(msg, 'success'); },
       error(msg) { this.log(msg, 'error'); },
-      info(msg) { this.log(msg, 'info'); }
+      info(msg) { this.log(msg, 'info'); },
+      gateway(msg) { this.log(`🔀 API GATEWAY: ${msg}`, 'gateway'); }
     };
     
-    // Toggle debug console avec Ctrl+D
     document.addEventListener('keydown', (e) => {
       if (e.ctrlKey && e.key === 'd') {
         e.preventDefault();
@@ -572,10 +572,10 @@
       },
       
       async init() {
-        Debug.info('🚀 Initializing Confidence Book...');
+        Debug.info('🚀 Initializing Confidence Book (NEXUS AXION 3.5)...');
+        Debug.gateway('Architecture: index.html → api.js → server.js');
         
         try {
-          // Charger utilisateur depuis localStorage
           const savedUser = localStorage.getItem('cb_user');
           if (savedUser) {
             this.state.user = JSON.parse(savedUser);
@@ -600,7 +600,6 @@
       setupEventListeners() {
         Debug.info('Setting up event listeners...');
         
-        // Chapitres
         document.querySelectorAll('.chapter-btn').forEach(btn => {
           btn.addEventListener('click', () => {
             Debug.info(`Chapter selected: ${btn.dataset.chapter}`);
@@ -611,20 +610,14 @@
           });
         });
         
-        // Publish button
         document.getElementById('publishBtn').addEventListener('click', () => this.publishConfidence());
-        
-        // Notification bell
         document.getElementById('notificationBell').addEventListener('click', () => this.toggleNotifications());
-        
-        // Auth modal
         document.getElementById('authSubmitBtn').addEventListener('click', () => this.handleAuth());
         document.getElementById('authCancelBtn').addEventListener('click', () => this.closeAuthModal());
         
         Debug.success('✅ Event listeners configured');
       },
       
-      // ========== AUTH ==========
       renderAuthState() {
         const container = document.getElementById('authContainer');
         
@@ -697,12 +690,11 @@
         alert('👋 À bientôt !');
       },
       
-      // ========== NOTIFICATIONS ==========
       async loadNotifications() {
         if (!this.state.user) return;
         
         try {
-          Debug.info('Loading notifications...');
+          Debug.gateway('GET /api/notifications');
           
           const response = await fetch('/api/notifications', {
             headers: { 'X-User-Id': this.state.user.id }
@@ -771,7 +763,7 @@
       
       async markNotificationRead(notificationId) {
         try {
-          Debug.info(`Marking notification as read: ${notificationId}`);
+          Debug.gateway(`POST /api/notifications/${notificationId}/read`);
           
           await fetch(`/api/notifications/${notificationId}/read`, {
             method: 'POST',
@@ -785,10 +777,9 @@
         }
       },
       
-      // ========== CONFIDENCES ==========
       async loadConfidences() {
         try {
-          Debug.info('Loading confidences...');
+          Debug.gateway('GET /api/confidences');
           document.getElementById('confidencesList').innerHTML = '<div class="loading">Chargement des histoires...</div>';
           
           const response = await fetch('/api/confidences');
@@ -822,7 +813,7 @@
           return;
         }
         
-        Debug.info(`Publishing confidence... (${text.length} chars, chapter: ${chapter})`);
+        Debug.gateway(`POST /api/confidences (${text.length} chars, chapter: ${chapter})`);
         
         const btn = document.getElementById('publishBtn');
         btn.disabled = true;
@@ -905,7 +896,6 @@
         `).join('');
       },
       
-      // ========== HELPERS ==========
       getChapterEmoji(chapter) {
         const emojis = {
           ruptures: '💔',
@@ -942,21 +932,22 @@
     // ========== AUTO-DIAGNOSTICS ==========
     window.addEventListener('load', async () => {
       Debug.info('=== AUTO-DIAGNOSTICS START ===');
+      Debug.gateway('Testing API Gateway connectivity...');
       
-      // Test 1: Backend connectivity
+      // Test 1: Backend connectivity via API Gateway
       try {
         const response = await fetch('/api/health');
         const data = await response.json();
         
         if (data.status === 'ok') {
-          Debug.success('✅ Backend connected');
+          Debug.success('✅ API Gateway → Backend connected');
           Debug.success(`✅ Database: ${data.services?.database || 'unknown'}`);
           Debug.success(`✅ AI: ${data.services?.ai || 'unknown'}`);
         } else {
           Debug.error('❌ Backend health check failed');
         }
       } catch (error) {
-        Debug.error(`❌ Backend unreachable: ${error.message}`);
+        Debug.error(`❌ API Gateway unreachable: ${error.message}`);
       }
       
       // Test 2: LocalStorage
@@ -987,6 +978,7 @@
       
       Debug.info('=== AUTO-DIAGNOSTICS COMPLETE ===');
       Debug.info('Press Ctrl+D to toggle this console');
+      Debug.gateway('Frontend ready to communicate with api.js');
       
       // Initialize app
       App.init();
