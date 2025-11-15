@@ -1,173 +1,447 @@
-// api.js - API GATEWAY CONFIDENCE BOOK
-// Point d'entrée unique selon architecture NEXUS AXION 3.5
+// server.js - BACKEND SERVICE CONFIDENCE BOOK
+// Logique métier + Modération IA + Database
 
-import express from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { ConfidenceBookService } from './server.js';
+import { createClient } from '@libsql/client';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-// ========== MIDDLEWARE ==========
-app.use(express.json());
-app.use(express.static(__dirname)); // Sert le frontend
-
-// Logging middleware
-app.use((req, res, next) => {
-  console.log(`📡 [API GATEWAY] ${req.method} ${req.path}`);
-  next();
-});
-
-// ========== INITIALISER BACKEND ==========
-let backend;
-
-async function initBackend() {
-  console.log('🔧 [API GATEWAY] Initializing Confidence Book backend...');
-  backend = new ConfidenceBookService();
-  await backend.init();
-  console.log('✅ [API GATEWAY] Backend ready');
-}
-
-// ========== ROUTE MAP ==========
-const routeMap = {
-  'POST:/api/auth/anonymous': (req) => backend.createAnonymousUser(),
-  'GET:/api/confidences': (req) => backend.getConfidences(req.query),
-  'POST:/api/confidences': (req) => backend.createConfidence(req.body, req.headers),
-  'POST:/api/reactions': (req) => backend.addReaction(req.body, req.headers),
-  'POST:/api/responses': (req) => backend.addResponse(req.body, req.headers),
-  'GET:/api/health': (req) => backend.healthCheck(),
-};
-
-// ========== ROUTER CENTRAL ==========
-function routeRequest(method, path, req) {
-  const routeKey = `${method}:${path}`;
-  
-  console.log(`📡 [API GATEWAY] ${routeKey}`);
-  console.log(`   └─ User: ${req.headers['x-user-id'] || 'anonymous'}`);
-  
-  const handler = routeMap[routeKey];
-  
-  if (!handler) {
-    console.error(`❌ [API GATEWAY] Route not found: ${routeKey}`);
-    throw new Error(`Route not mapped: ${routeKey}`);
+export class ConfidenceBookService {
+  constructor() {
+    this.db = null;
+    this.aiEndpoint = 'https://api.groq.com/openai/v1/chat/completions';
+    this.aiApiKey = process.env.GROQ_API_KEY;
   }
-  
-  return handler(req);
-}
 
-// ========== EXPOSE FRONTEND ==========
-app.get('/', (req, res) => {
-  console.log('🌐 [API GATEWAY] Serving frontend');
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-// ========== API ENDPOINTS ==========
-
-// Health check
-app.get('/api/health', async (req, res) => {
-  try {
-    const result = await routeRequest('GET', '/api/health', req);
-    res.json(result);
-  } catch (error) {
-    console.error('❌ [API GATEWAY] Error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-// Authentification anonyme
-app.post('/api/auth/anonymous', async (req, res) => {
-  try {
-    const result = await routeRequest('POST', '/api/auth/anonymous', req);
-    console.log(`✅ [API GATEWAY] Anonymous user created: ${result.userId}`);
-    res.json(result);
-  } catch (error) {
-    console.error('❌ [API GATEWAY] Error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-// Récupérer confidences
-app.get('/api/confidences', async (req, res) => {
-  try {
-    const result = await routeRequest('GET', '/api/confidences', req);
-    console.log(`✅ [API GATEWAY] Returned ${result.data?.length || 0} confidences`);
-    res.json(result);
-  } catch (error) {
-    console.error('❌ [API GATEWAY] Error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-// Créer confidence
-app.post('/api/confidences', async (req, res) => {
-  try {
-    console.log(`📝 [API GATEWAY] Creating confidence:`, {
-      emotion: req.body.emotion,
-      contentLength: req.body.content?.length
+  async init() {
+    console.log('✅ [BACKEND] Initializing Confidence Book Service...');
+    
+    // Connexion à Turso (LibSQL)
+    this.db = createClient({
+      url: process.env.DATABASE_URL || 'file:local.db',
+      authToken: process.env.DATABASE_AUTH_TOKEN
     });
-    const result = await routeRequest('POST', '/api/confidences', req);
-    res.json(result);
-  } catch (error) {
-    console.error('❌ [API GATEWAY] Error:', error);
-    res.status(500).json({ success: false, message: error.message });
+
+    // Créer tables si n'existent pas
+    await this.createTables();
+    
+    console.log('✅ [BACKEND] Database connected');
   }
-});
 
-// Ajouter réaction
-app.post('/api/reactions', async (req, res) => {
-  try {
-    console.log(`💙 [API GATEWAY] Adding reaction:`, req.body);
-    const result = await routeRequest('POST', '/api/reactions', req);
-    res.json(result);
-  } catch (error) {
-    console.error('❌ [API GATEWAY] Error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-// Ajouter réponse
-app.post('/api/responses', async (req, res) => {
-  try {
-    console.log(`💬 [API GATEWAY] Adding response to confidence ${req.body.confidenceId}`);
-    const result = await routeRequest('POST', '/api/responses', req);
-    res.json(result);
-  } catch (error) {
-    console.error('❌ [API GATEWAY] Error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-// ========== ERROR HANDLERS ==========
-app.use((err, req, res, next) => {
-  console.error('💥 [API GATEWAY] Unhandled error:', err);
-  res.status(500).json({ success: false, message: 'Internal server error' });
-});
-
-app.use((req, res) => {
-  console.warn(`⚠️ [API GATEWAY] 404: ${req.method} ${req.path}`);
-  res.status(404).json({ success: false, message: 'Route not found' });
-});
-
-// ========== START SERVER ==========
-async function startServer() {
-  await initBackend();
-  
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`
-╔═══════════════════════════════════════════════════════╗
-║   🌌 CONFIDENCE BOOK - API GATEWAY                    ║
-║   🌐 Server:     http://0.0.0.0:${PORT.toString().padEnd(27)}║
-║   📂 Frontend:   index.html                           ║
-║   ⚙️  Backend:    server.js                            ║
-║   🔀 Gateway:     api.js (this file)                  ║
-║   ✅ Routing:     ${Object.keys(routeMap).length} endpoints mapped                ║
-╚═══════════════════════════════════════════════════════╝
+  async createTables() {
+    // Table des utilisateurs anonymes
+    await this.db.execute(`
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        created_at INTEGER NOT NULL
+      )
     `);
-  });
-}
 
-startServer();
+    // Table des confidences
+    await this.db.execute(`
+      CREATE TABLE IF NOT EXISTS confidences (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        content TEXT NOT NULL,
+        emotion TEXT NOT NULL,
+        moderation_score REAL,
+        moderation_message TEXT,
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      )
+    `);
+
+    // Table des réactions
+    await this.db.execute(`
+      CREATE TABLE IF NOT EXISTS reactions (
+        id TEXT PRIMARY KEY,
+        confidence_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        type TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (confidence_id) REFERENCES confidences(id),
+        UNIQUE(confidence_id, user_id, type)
+      )
+    `);
+
+    // Table des réponses
+    await this.db.execute(`
+      CREATE TABLE IF NOT EXISTS responses (
+        id TEXT PRIMARY KEY,
+        confidence_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        content TEXT NOT NULL,
+        avatar TEXT NOT NULL,
+        moderation_score REAL,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (confidence_id) REFERENCES confidences(id)
+      )
+    `);
+
+    console.log('✅ [BACKEND] Tables created/verified');
+  }
+
+  // ========== AUTHENTIFICATION ==========
+  
+  async createAnonymousUser() {
+    const userId = 'user_' + Math.random().toString(36).substr(2, 9);
+    const now = Date.now();
+    
+    await this.db.execute({
+      sql: 'INSERT INTO users (id, created_at) VALUES (?, ?)',
+      args: [userId, now]
+    });
+    
+    console.log('[BACKEND] Created anonymous user:', userId);
+    
+    return {
+      success: true,
+      userId
+    };
+  }
+
+  // ========== CONFIDENCES ==========
+  
+  async getConfidences(query) {
+    const chapter = query.chapter || 'all';
+    const now = Date.now();
+    
+    let sql = `
+      SELECT 
+        c.*,
+        (SELECT COUNT(*) FROM reactions WHERE confidence_id = c.id AND type = 'reconfortant') as reactions_reconfortant,
+        (SELECT COUNT(*) FROM reactions WHERE confidence_id = c.id AND type = 'utile') as reactions_utile,
+        (SELECT COUNT(*) FROM reactions WHERE confidence_id = c.id AND type = 'repense') as reactions_repense
+      FROM confidences c
+      WHERE c.expires_at > ?
+    `;
+    
+    const args = [now];
+    
+    if (chapter !== 'all') {
+      sql += ' AND c.emotion = ?';
+      args.push(chapter);
+    }
+    
+    sql += ' ORDER BY c.created_at DESC LIMIT 50';
+    
+    const result = await this.db.execute({
+      sql,
+      args
+    });
+    
+    // Récupérer les réponses pour chaque confidence
+    const confidences = await Promise.all(result.rows.map(async (row) => {
+      const responsesResult = await this.db.execute({
+        sql: 'SELECT * FROM responses WHERE confidence_id = ? ORDER BY created_at ASC',
+        args: [row.id]
+      });
+      
+      return {
+        id: row.id,
+        content: row.content,
+        emotion: row.emotion,
+        created_at: row.created_at,
+        reactions: {
+          reconfortant: Number(row.reactions_reconfortant),
+          utile: Number(row.reactions_utile),
+          repense: Number(row.reactions_repense)
+        },
+        responses: responsesResult.rows.map(r => ({
+          id: r.id,
+          content: r.content,
+          avatar: r.avatar,
+          created_at: r.created_at
+        }))
+      };
+    }));
+    
+    console.log(`[BACKEND] Retrieved ${confidences.length} confidences`);
+    
+    return {
+      success: true,
+      data: confidences
+    };
+  }
+
+  async createConfidence(body, headers) {
+    const userId = headers['x-user-id'];
+    const { content, emotion } = body;
+    
+    if (!userId) {
+      return { success: false, message: 'User ID required' };
+    }
+    
+    if (!content || content.trim().length < 10) {
+      return { success: false, message: 'La confidence doit contenir au moins 10 caractères' };
+    }
+    
+    if (!emotion) {
+      return { success: false, message: 'Tonalité émotionnelle requise' };
+    }
+    
+    console.log('[BACKEND] Moderating confidence with AI...');
+    
+    // Modération par IA
+    const moderationResult = await this.moderateContent(content, 'confidence');
+    
+    if (!moderationResult.approved) {
+      console.log('[BACKEND] Confidence rejected by moderation');
+      return {
+        success: false,
+        moderated: true,
+        published: false,
+        moderationMessage: moderationResult.message
+      };
+    }
+    
+    // Créer la confidence
+    const confidenceId = 'conf_' + Math.random().toString(36).substr(2, 9);
+    const now = Date.now();
+    const expiresAt = now + (90 * 24 * 60 * 60 * 1000); // 3 mois
+    
+    await this.db.execute({
+      sql: `INSERT INTO confidences 
+            (id, user_id, content, emotion, moderation_score, moderation_message, created_at, expires_at) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [confidenceId, userId, content, emotion, moderationResult.score, moderationResult.message, now, expiresAt]
+    });
+    
+    console.log('[BACKEND] Confidence created:', confidenceId);
+    
+    return {
+      success: true,
+      moderated: moderationResult.warning,
+      published: true,
+      moderationMessage: moderationResult.message,
+      confidenceId
+    };
+  }
+
+  // ========== RÉACTIONS ==========
+  
+  async addReaction(body, headers) {
+    const userId = headers['x-user-id'];
+    const { confidenceId, reactionType } = body;
+    
+    if (!userId || !confidenceId || !reactionType) {
+      return { success: false, message: 'Missing required fields' };
+    }
+    
+    const reactionId = 'react_' + Math.random().toString(36).substr(2, 9);
+    const now = Date.now();
+    
+    try {
+      await this.db.execute({
+        sql: 'INSERT INTO reactions (id, confidence_id, user_id, type, created_at) VALUES (?, ?, ?, ?, ?)',
+        args: [reactionId, confidenceId, userId, reactionType, now]
+      });
+      
+      console.log('[BACKEND] Reaction added:', reactionType);
+      
+      return { success: true };
+    } catch (error) {
+      // Si déjà réagi (UNIQUE constraint)
+      console.log('[BACKEND] User already reacted');
+      return { success: true, message: 'Already reacted' };
+    }
+  }
+
+  // ========== RÉPONSES ==========
+  
+  async addResponse(body, headers) {
+    const userId = headers['x-user-id'];
+    const { confidenceId, content } = body;
+    
+    if (!userId || !confidenceId || !content) {
+      return { success: false, message: 'Missing required fields' };
+    }
+    
+    if (content.trim().length < 5) {
+      return { success: false, message: 'La réponse doit contenir au moins 5 caractères' };
+    }
+    
+    console.log('[BACKEND] Moderating response with AI...');
+    
+    // Modération par IA
+    const moderationResult = await this.moderateContent(content, 'response');
+    
+    if (!moderationResult.approved) {
+      console.log('[BACKEND] Response rejected by moderation');
+      return {
+        success: false,
+        message: moderationResult.message
+      };
+    }
+    
+    // Générer avatar aléatoire
+    const avatars = ['🌙', '☀️', '🌿', '🧘', '🌸', '🦋', '🌊', '🍃', '⭐', '💫'];
+    const avatar = avatars[Math.floor(Math.random() * avatars.length)];
+    
+    const responseId = 'resp_' + Math.random().toString(36).substr(2, 9);
+    const now = Date.now();
+    
+    await this.db.execute({
+      sql: `INSERT INTO responses 
+            (id, confidence_id, user_id, content, avatar, moderation_score, created_at) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      args: [responseId, confidenceId, userId, content, avatar, moderationResult.score, now]
+    });
+    
+    console.log('[BACKEND] Response created:', responseId);
+    
+    return {
+      success: true,
+      responseId
+    };
+  }
+
+  // ========== MODÉRATION IA ==========
+  
+  async moderateContent(content, type) {
+    // Si pas de clé API, approuver par défaut (mode dev)
+    if (!this.aiApiKey) {
+      console.log('[BACKEND] No AI key, skipping moderation (dev mode)');
+      return {
+        approved: true,
+        score: 0.9,
+        warning: false,
+        message: 'Moderation skipped (dev mode)'
+      };
+    }
+    
+    try {
+      const prompt = type === 'confidence' 
+        ? this.getModerationPromptConfidence(content)
+        : this.getModerationPromptResponse(content);
+      
+      const response = await fetch(this.aiEndpoint, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.aiApiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'llama-3.1-70b-versatile',
+          messages: [
+            { role: 'system', content: 'Tu es un modérateur bienveillant pour Confidence Book, une plateforme d\'expression émotionnelle.' },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.3,
+          max_tokens: 500
+        })
+      });
+      
+      if (!response.ok) {
+        console.error('[BACKEND] AI moderation failed:', response.statusText);
+        return {
+          approved: true,
+          score: 0.7,
+          warning: false,
+          message: 'Moderation service unavailable'
+        };
+      }
+      
+      const data = await response.json();
+      const aiResponse = data.choices[0].message.content.trim();
+      
+      // Parser la réponse IA
+      if (aiResponse.startsWith('APPROVED')) {
+        const warningMatch = aiResponse.match(/WARNING: (.+)/);
+        return {
+          approved: true,
+          score: 0.8,
+          warning: !!warningMatch,
+          message: warningMatch ? warningMatch[1] : 'Contenu validé'
+        };
+      } else if (aiResponse.startsWith('REJECTED')) {
+        const reason = aiResponse.replace('REJECTED:', '').trim();
+        return {
+          approved: false,
+          score: 0.2,
+          warning: false,
+          message: reason || 'Contenu non conforme aux règles de bienveillance'
+        };
+      }
+      
+      return {
+        approved: true,
+        score: 0.7,
+        warning: false,
+        message: 'Moderation completed'
+      };
+      
+    } catch (error) {
+      console.error('[BACKEND] AI moderation error:', error);
+      return {
+        approved: true,
+        score: 0.7,
+        warning: false,
+        message: 'Moderation error, content approved by default'
+      };
+    }
+  }
+
+  getModerationPromptConfidence(content) {
+    return `Analyse cette confidence et détermine si elle respecte les règles de Confidence Book:
+
+RÈGLES:
+- ✅ ACCEPTER: Expressions de tristesse, peur, colère, espoir, vulnérabilité, trauma personnel
+- ✅ ACCEPTER: Mentions de pensées suicidaires (c'est un appel à l'aide légitime)
+- ❌ REJETER: Incitations à la violence envers autrui
+- ❌ REJETER: Discours de haine, racisme, homophobie, sexisme
+- ❌ REJETER: Spam, publicité, arnaque
+- ❌ REJETER: Contenu sexuel explicite
+
+CONFIDENCE:
+"${content}"
+
+Réponds UNIQUEMENT par:
+- "APPROVED" si le contenu respecte les règles
+- "APPROVED WARNING: [message]" si le contenu est acceptable mais sensible
+- "REJECTED: [raison courte]" si le contenu viole les règles
+
+Réponse:`;
+  }
+
+  getModerationPromptResponse(content) {
+    return `Analyse cette réponse à une confidence et détermine si elle est bienveillante:
+
+RÈGLES:
+- ✅ ACCEPTER: Empathie, soutien, conseils constructifs, partage d'expérience
+- ❌ REJETER: Jugement, critique dure, minimisation de la douleur
+- ❌ REJETER: Conseils dangereux
+- ❌ REJETER: Spam, publicité, prosélytisme
+
+RÉPONSE:
+"${content}"
+
+Réponds UNIQUEMENT par:
+- "APPROVED" si la réponse est bienveillante
+- "REJECTED: [raison]" si la réponse n'est pas appropriée
+
+Réponse:`;
+  }
+
+  // ========== HEALTH CHECK ==========
+  
+  async healthCheck() {
+    const checks = {
+      timestamp: new Date().toISOString(),
+      status: 'ok',
+      services: {}
+    };
+    
+    // Check database
+    try {
+      await this.db.execute('SELECT 1');
+      checks.services.database = 'connected';
+    } catch (error) {
+      checks.services.database = 'offline';
+      checks.status = 'degraded';
+    }
+    
+    // Check AI
+    checks.services.ai = this.aiApiKey ? 'configured' : 'dev-mode';
+    
+    return checks;
+  }
+}
