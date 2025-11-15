@@ -1,577 +1,664 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Confidence Book - Ton refuge émotionnel</title>
-  
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confidence Book - Votre Refuge Émotionnel</title>
     
-    :root {
-      --bg-primary: #0a0a0f;
-      --bg-card: #1a1a24;
-      --text-primary: #e8e8f0;
-      --text-secondary: #9090a8;
-      --accent-hope: #6b8cff;
-      --accent-pain: #ff6b9d;
-      --accent-calm: #70d6a3;
-      --accent-warning: #ffb86c;
-      --accent-crisis: #ff5555;
-    }
+    <script src="https://cdn.tailwindcss.com"></script>
     
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: var(--bg-primary);
-      color: var(--text-primary);
-      line-height: 1.6;
-      padding: 20px;
-      max-width: 800px;
-      margin: 0 auto;
-    }
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    header {
-      text-align: center;
-      padding: 40px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      margin-bottom: 40px;
-      position: relative;
-    }
-    
-    h1 {
-      font-size: 2.5rem;
-      font-weight: 300;
-      margin-bottom: 10px;
-      background: linear-gradient(135deg, var(--accent-hope), var(--accent-pain));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    
-    .tagline {
-      color: var(--text-secondary);
-      font-size: 1rem;
-    }
-    
-    .architecture-badge {
-      display: inline-block;
-      background: rgba(107, 140, 255, 0.2);
-      border: 1px solid var(--accent-hope);
-      padding: 5px 15px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      margin-top: 10px;
-      color: var(--accent-hope);
-    }
-    
-    .test-panel {
-      background: var(--bg-card);
-      border: 2px solid var(--accent-warning);
-      padding: 20px;
-      border-radius: 12px;
-      margin-bottom: 30px;
-    }
-    
-    .test-panel h3 {
-      color: var(--accent-warning);
-      margin-bottom: 15px;
-    }
-    
-    .test-btn {
-      background: var(--accent-hope);
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1rem;
-      margin-right: 10px;
-      margin-bottom: 10px;
-    }
-    
-    .test-btn:hover {
-      opacity: 0.8;
-    }
-    
-    .test-btn:active {
-      transform: scale(0.95);
-    }
-    
-    #testOutput {
-      background: #111;
-      padding: 15px;
-      border-radius: 8px;
-      margin-top: 15px;
-      font-family: monospace;
-      font-size: 0.9rem;
-      max-height: 300px;
-      overflow-y: auto;
-      white-space: pre-wrap;
-    }
-    
-    .chapters {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 15px;
-      margin-bottom: 40px;
-    }
-    
-    .chapter-btn {
-      background: var(--bg-card);
-      border: 2px solid rgba(255,255,255,0.1);
-      padding: 20px;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      text-align: center;
-    }
-    
-    .chapter-btn:hover {
-      transform: translateY(-2px);
-      border-color: var(--accent-hope);
-    }
-    
-    .chapter-btn:active {
-      transform: scale(0.98);
-    }
-    
-    .chapter-btn.active {
-      border-color: var(--accent-hope);
-      background: rgba(107, 140, 255, 0.1);
-    }
-    
-    .confidence-card {
-      background: var(--bg-card);
-      border-radius: 16px;
-      padding: 30px;
-      margin-bottom: 20px;
-      border-left: 4px solid var(--accent-hope);
-    }
-    
-    .confidence-meta {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 15px;
-      font-size: 0.9rem;
-      color: var(--text-secondary);
-    }
-    
-    .avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent-hope), var(--accent-pain));
-    }
-    
-    .confidence-text {
-      font-size: 1.1rem;
-      line-height: 1.8;
-      margin-bottom: 20px;
-      white-space: pre-wrap;
-    }
-    
-    .publish-form {
-      background: var(--bg-card);
-      border-radius: 16px;
-      padding: 30px;
-      margin-bottom: 40px;
-    }
-    
-    textarea {
-      width: 100%;
-      min-height: 150px;
-      background: var(--bg-primary);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 12px;
-      padding: 15px;
-      color: var(--text-primary);
-      font-family: inherit;
-      font-size: 1rem;
-      resize: vertical;
-      margin-bottom: 15px;
-    }
-    
-    textarea:focus {
-      outline: none;
-      border-color: var(--accent-hope);
-    }
-    
-    select {
-      width: 100%;
-      padding: 12px;
-      background: var(--bg-primary);
-      border: 1px solid rgba(255,255,255,0.1);
-      color: var(--text-primary);
-      border-radius: 8px;
-      font-size: 1rem;
-      margin-bottom: 15px;
-      cursor: pointer;
-    }
-    
-    .submit-btn {
-      background: var(--accent-hope);
-      color: white;
-      border: none;
-      padding: 12px 30px;
-      border-radius: 8px;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: all 0.3s;
-      width: 100%;
-    }
-    
-    .submit-btn:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(107, 140, 255, 0.3);
-    }
-    
-    .submit-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    
-    .loading {
-      text-align: center;
-      padding: 60px;
-      color: var(--text-secondary);
-    }
-    
-    .empty-state {
-      text-align: center;
-      padding: 80px 20px;
-      color: var(--text-secondary);
-    }
-    
-    .success { color: #70d6a3; }
-    .error { color: #ff5555; }
-    .info { color: #6b8cff; }
-    
-    @media (max-width: 600px) {
-      h1 { font-size: 2rem; }
-      .chapters { grid-template-columns: repeat(2, 1fr); }
-      .confidence-card { padding: 20px; }
-    }
-  </style>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa; 
+        }
+        
+        .theme-calm {
+            --theme-bg: #f8f9fa;
+            --theme-surface: #ffffff;
+            --theme-primary: #3b82f6;
+            --theme-primary-hover: #2563eb;
+            --theme-text-primary: #1f2937;
+            --theme-text-secondary: #6b7280;
+            --theme-border: #e5e7eb;
+        }
+
+        .dark .theme-calm {
+            --theme-bg: #111827;
+            --theme-surface: #1f2937;
+            --theme-primary: #60a5fa;
+            --theme-primary-hover: #93c5fd;
+            --theme-text-primary: #f9fafb;
+            --theme-text-secondary: #9ca3af;
+            --theme-border: #374151;
+        }
+
+        body {
+            background-color: var(--theme-bg);
+            color: var(--theme-text-primary);
+        }
+        .bg-surface { background-color: var(--theme-surface); }
+        .bg-primary { background-color: var(--theme-primary); }
+        .hover\:bg-primary-hover:hover { background-color: var(--theme-primary-hover); }
+        .text-primary { color: var(--theme-primary); }
+        .text-secondary { color: var(--theme-text-secondary); }
+        .border-theme { border-color: var(--theme-border); }
+        .shadow-calm { box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.05); }
+        .dark .shadow-calm { box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.1); }
+        
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
 </head>
 
-<body>
-  <header>
-    <h1>Confidence Book</h1>
-    <p class="tagline">Ton refuge émotionnel anonyme</p>
-    <div class="architecture-badge">⚡ NEXUS AXION 3.5 - API Gateway</div>
-  </header>
+<body class="theme-calm">
 
-  <!-- PANEL DE TEST INTERACTIF -->
-  <div class="test-panel">
-    <h3>🔧 Tests de Connectivité API Gateway</h3>
-    <p style="color: var(--text-secondary); margin-bottom: 15px;">
-      Clique sur ces boutons pour tester si le frontend communique avec l'API Gateway
-    </p>
-    
-    <button class="test-btn" onclick="testHealth()">1️⃣ Test Health Check</button>
-    <button class="test-btn" onclick="testLoadConfidences()">2️⃣ Test Charger Confidences</button>
-    <button class="test-btn" onclick="testPublish()">3️⃣ Test Publier (Demo)</button>
-    <button class="test-btn" onclick="clearOutput()">🧹 Effacer</button>
-    
-    <div id="testOutput"></div>
-  </div>
-
-  <!-- Chapitres émotionnels -->
-  <section class="chapters">
-    <div class="chapter-btn active" data-chapter="all" onclick="selectChapter(this, 'all')">
-      <div style="font-size: 2rem; margin-bottom: 10px;">🌌</div>
-      <div>Toutes</div>
-    </div>
-    <div class="chapter-btn" data-chapter="ruptures" onclick="selectChapter(this, 'ruptures')">
-      <div style="font-size: 2rem; margin-bottom: 10px;">💔</div>
-      <div>Ruptures</div>
-    </div>
-    <div class="chapter-btn" data-chapter="isolement" onclick="selectChapter(this, 'isolement')">
-      <div style="font-size: 2rem; margin-bottom: 10px;">😔</div>
-      <div>Isolement</div>
-    </div>
-    <div class="chapter-btn" data-chapter="trauma" onclick="selectChapter(this, 'trauma')">
-      <div style="font-size: 2rem; margin-bottom: 10px;">🔥</div>
-      <div>Traumas</div>
-    </div>
-    <div class="chapter-btn" data-chapter="espoir" onclick="selectChapter(this, 'espoir')">
-      <div style="font-size: 2rem; margin-bottom: 10px;">🤝</div>
-      <div>Espoir</div>
-    </div>
-  </section>
-
-  <!-- Formulaire publication -->
-  <section class="publish-form">
-    <h2 style="margin-bottom: 20px;">Partage ton histoire</h2>
-    <textarea 
-      id="confidenceText" 
-      placeholder="Écris ce que tu portes... Personne ne saura que c'est toi."
-    ></textarea>
-    
-    <select id="chapterSelect">
-      <option value="ruptures">💔 Ruptures</option>
-      <option value="isolement">😔 Isolement</option>
-      <option value="trauma">🔥 Traumas</option>
-      <option value="espoir">🤝 Espoir</option>
-    </select>
-    
-    <button class="submit-btn" onclick="publishConfidence()">
-      Partager anonymement
-    </button>
-  </section>
-
-  <!-- Liste des confidences -->
-  <section id="confidencesList">
-    <div class="loading">Clique sur "Test Charger Confidences" ci-dessus pour tester...</div>
-  </section>
-
-  <script>
-    // ========== STATE GLOBAL ==========
-    let currentChapter = 'all';
-    let confidences = [];
-    const userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    
-    // ========== LOGGING ==========
-    function log(message, type = 'info') {
-      const output = document.getElementById('testOutput');
-      const timestamp = new Date().toLocaleTimeString();
-      const color = type === 'success' ? 'var(--accent-calm)' : 
-                    type === 'error' ? 'var(--accent-crisis)' : 
-                    'var(--accent-hope)';
-      
-      output.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
-      output.scrollTop = output.scrollHeight;
-      console.log(`[${type.toUpperCase()}]`, message);
-    }
-    
-    function clearOutput() {
-      document.getElementById('testOutput').innerHTML = '';
-      log('Console effacée', 'info');
-    }
-    
-    // ========== TEST 1: HEALTH CHECK ==========
-    async function testHealth() {
-      log('🔍 Test 1: Health Check...', 'info');
-      
-      try {
-        log('   → Appel GET /api/health', 'info');
-        const response = await fetch('/api/health');
-        
-        log(`   ← Status: ${response.status}`, response.ok ? 'success' : 'error');
-        
-        const data = await response.json();
-        log(`   ← Response: ${JSON.stringify(data, null, 2)}`, 'success');
-        
-        if (data.status === 'ok') {
-          log('✅ Backend connecté via API Gateway !', 'success');
-        } else {
-          log('❌ Backend répond mais status != ok', 'error');
-        }
-      } catch (error) {
-        log(`❌ Erreur: ${error.message}`, 'error');
-      }
-    }
-    
-    // ========== TEST 2: LOAD CONFIDENCES ==========
-    async function testLoadConfidences() {
-      log('🔍 Test 2: Charger Confidences...', 'info');
-      
-      try {
-        log('   → Appel GET /api/confidences', 'info');
-        const response = await fetch('/api/confidences');
-        
-        log(`   ← Status: ${response.status}`, response.ok ? 'success' : 'error');
-        
-        const data = await response.json();
-        
-        if (data.success) {
-          confidences = data.data || [];
-          log(`✅ ${confidences.length} confidences chargées`, 'success');
-          renderConfidences();
-        } else {
-          log(`❌ Erreur: ${data.message}`, 'error');
-        }
-      } catch (error) {
-        log(`❌ Erreur: ${error.message}`, 'error');
-      }
-    }
-    
-    // ========== TEST 3: PUBLISH ==========
-    async function testPublish() {
-      log('🔍 Test 3: Publier une confidence de test...', 'info');
-      
-      const testData = {
-        text: 'Ceci est un message de test pour vérifier la connectivité API Gateway → Backend. Si tu vois ce message dans la liste, tout fonctionne ! ' + new Date().toLocaleTimeString(),
-        chapter: 'espoir'
-      };
-      
-      try {
-        log(`   → Appel POST /api/confidences`, 'info');
-        log(`   → Body: ${JSON.stringify(testData)}`, 'info');
-        
-        const response = await fetch('/api/confidences', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-User-Id': userId
-          },
-          body: JSON.stringify(testData)
-        });
-        
-        log(`   ← Status: ${response.status}`, response.ok ? 'success' : 'error');
-        
-        const data = await response.json();
-        log(`   ← Response: ${JSON.stringify(data, null, 2)}`, data.success ? 'success' : 'error');
-        
-        if (data.success) {
-          log('✅ Confidence publiée avec succès !', 'success');
-          log('   → Recharger la liste...', 'info');
-          await testLoadConfidences();
-        } else {
-          log(`❌ Publication refusée: ${data.message}`, 'error');
-        }
-      } catch (error) {
-        log(`❌ Erreur: ${error.message}`, 'error');
-      }
-    }
-    
-    // ========== CHAPTER SELECTION ==========
-    function selectChapter(element, chapter) {
-      log(`📂 Chapitre sélectionné: ${chapter}`, 'info');
-      
-      document.querySelectorAll('.chapter-btn').forEach(btn => {
-        btn.classList.remove('active');
-      });
-      
-      element.classList.add('active');
-      currentChapter = chapter;
-      renderConfidences();
-    }
-    
-    // ========== PUBLISH REAL ==========
-    async function publishConfidence() {
-      const text = document.getElementById('confidenceText').value.trim();
-      const chapter = document.getElementById('chapterSelect').value;
-      
-      if (!text || text.length < 10) {
-        alert('⚠️ Ton message est trop court (minimum 10 caractères)');
-        return;
-      }
-      
-      log(`📝 Publication: ${text.length} chars, chapter: ${chapter}`, 'info');
-      
-      const btn = event.target;
-      btn.disabled = true;
-      btn.textContent = '🤖 Analyse IA en cours...';
-      
-      try {
-        const response = await fetch('/api/confidences', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-User-Id': userId
-          },
-          body: JSON.stringify({ text, chapter })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-          log('✅ Confidence publiée !', 'success');
-          document.getElementById('confidenceText').value = '';
-          await testLoadConfidences();
-          alert('✅ Ton histoire a été partagée anonymement.');
-        } else {
-          log(`❌ ${data.message}`, 'error');
-          alert('❌ ' + data.message);
-        }
-      } catch (error) {
-        log(`❌ Erreur: ${error.message}`, 'error');
-        alert('Erreur lors de la publication');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Partager anonymement';
-      }
-    }
-    
-    // ========== RENDER ==========
-    function renderConfidences() {
-      const container = document.getElementById('confidencesList');
-      
-      let filtered = confidences;
-      if (currentChapter !== 'all') {
-        filtered = confidences.filter(c => c.chapter === currentChapter);
-      }
-      
-      if (filtered.length === 0) {
-        container.innerHTML = `
-          <div class="empty-state">
-            <div style="font-size: 3rem; margin-bottom: 20px;">📖</div>
-            <div style="font-size: 1.2rem;">Aucune confidence dans ce chapitre.</div>
-            <div style="margin-top: 10px;">Clique sur "Test Publier" pour en créer une.</div>
-          </div>
-        `;
-        return;
-      }
-      
-      container.innerHTML = filtered.map(conf => `
-        <div class="confidence-card">
-          <div class="confidence-meta">
-            <div class="avatar"></div>
-            <span>${getChapterEmoji(conf.chapter)} ${formatDate(conf.created_at)}</span>
-          </div>
-          
-          <div class="confidence-text">${escapeHtml(conf.text)}</div>
+    <!-- ÉCRAN D'ACCUEIL -->
+    <div id="auth-view" class="flex items-center justify-center min-h-screen p-4">
+        <div class="w-full max-w-md text-center">
+            <div class="bg-surface rounded-2xl shadow-calm p-8 md:p-12">
+                <div class="flex justify-center mb-6">
+                    <svg class="w-16 h-16 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                    </svg>
+                </div>
+                
+                <h1 class="text-3xl font-bold text-primary mb-3">Confidence Book</h1>
+                <p class="text-secondary text-lg mb-8">Personne ne doit rester seul face à son histoire.</p>
+                
+                <button onclick="enterApp()" class="w-full bg-primary text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-primary-hover transition-all duration-300">
+                    Entrer anonymement
+                </button>
+                
+                <p class="text-secondary text-xs mt-6">En entrant, vous acceptez nos règles de bienveillance. Aucune donnée personnelle n'est requise.</p>
+            </div>
         </div>
-      `).join('');
-      
-      log(`✅ ${filtered.length} confidences affichées`, 'success');
-    }
+    </div>
+
+    <!-- ÉCRAN PRINCIPAL -->
+    <div id="app-view" class="hidden min-h-screen">
+        
+        <!-- Header Mobile -->
+        <header class="md:hidden bg-surface shadow-calm sticky top-0 z-20 flex items-center justify-between p-4 border-b border-theme">
+            <h1 class="text-xl font-bold text-primary">Confidence Book</h1>
+            <div class="flex items-center space-x-3">
+                <button onclick="showModal('post-modal')" class="p-2 rounded-full bg-primary text-white">
+                    <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                    </svg>
+                </button>
+                <button onclick="showModal('settings-modal')" class="p-2 rounded-full text-secondary hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                    </svg>
+                </button>
+            </div>
+        </header>
+        
+        <!-- Layout 3 colonnes -->
+        <div class="container mx-auto max-w-7xl grid grid-cols-1 md:grid-cols-4 gap-6 p-4 md:py-8">
+
+            <!-- COLONNE GAUCHE : NAVIGATION -->
+            <nav class="hidden md:block col-span-1 space-y-6 sticky top-8 self-start">
+                <div class="bg-surface rounded-2xl shadow-calm p-5">
+                    <h2 class="text-sm font-semibold text-secondary uppercase tracking-wider mb-4">Chapitres Émotionnels</h2>
+                    <ul class="space-y-2" id="chapters-list">
+                        <!-- Rempli dynamiquement -->
+                    </ul>
+                </div>
+                
+                <div class="bg-surface rounded-2xl shadow-calm p-5">
+                    <h2 class="text-sm font-semibold text-secondary uppercase tracking-wider mb-4">Paramètres</h2>
+                    <ul class="space-y-2">
+                        <li><button onclick="showModal('settings-modal')" class="flex items-center w-full space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group">
+                            <svg class="w-6 h-6 text-secondary group-hover:text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0M3.75 18H7.5m3-6h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0M3.75 12H7.5" /></svg>
+                            <span class="font-medium text-secondary group-hover:text-primary">Paramètres</span>
+                        </button></li>
+                        <li><button onclick="logout()" class="flex items-center w-full space-x-3 p-3 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/50 group">
+                            <svg class="w-6 h-6 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" /></svg>
+                            <span class="font-medium text-red-500">Quitter</span>
+                        </button></li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- COLONNE CENTRALE : FLUX -->
+            <main class="col-span-1 md:col-span-2 space-y-6">
+                
+                <!-- Boîte de publication -->
+                <div class="bg-surface rounded-2xl shadow-calm p-5">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 0a12.06 12.06 0 00-4.5 0m3.75 0a12.06 12.06 0 01-4.5 0m3.75 0a12.06 12.06 0 00-4.5 0" /></svg>
+                        </div>
+                        <button onclick="showModal('post-modal')" class="w-full text-left bg-gray-100 dark:bg-gray-700 rounded-full p-3 px-5 text-secondary hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+                            Exprimez-vous en toute sécurité...
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Séparateur -->
+                <div class="flex items-center justify-center">
+                    <span class="text-sm font-medium text-secondary">Le Mur des Confidences</span>
+                </div>
+
+                <!-- Container des confidences -->
+                <div id="confidences-list">
+                    <div class="text-center text-secondary py-12">
+                        <p>Chargement des confidences...</p>
+                    </div>
+                </div>
+
+            </main>
+
+            <!-- COLONNE DROITE : PHILOSOPHIE -->
+            <aside class="hidden md:block col-span-1 sticky top-8 self-start">
+                <div class="bg-surface rounded-2xl shadow-calm p-6">
+                    <h2 class="text-lg font-semibold text-primary mb-3">Notre Philosophie</h2>
+                    <p class="text-secondary text-sm leading-relaxed">
+                        Ceci est un refuge, pas un réseau social. L'anonymat est un outil de libération.
+                    </p>
+                    <ul class="list-disc list-inside text-secondary text-sm space-y-2 mt-4">
+                        <li>Soyez bienveillant</li>
+                        <li>Ne jugez pas</li>
+                        <li>Écoutez et soutenez</li>
+                    </ul>
+                    <p class="text-xs text-gray-400 mt-6">
+                        Les messages haineux ou dangereux sont automatiquement filtrés pour préserver cet espace.
+                    </p>
+                </div>
+            </aside>
+
+        </div>
+    </div>
+
+    <!-- MODALE CRÉATION CONFIDENCE -->
+    <div id="post-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div onclick="hideModal('post-modal')" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+        
+        <div class="bg-surface rounded-2xl shadow-calm w-full max-w-2xl z-10 p-6 md:p-8">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-semibold text-primary">Écrire une confidence</h2>
+                <button onclick="hideModal('post-modal')" class="p-2 rounded-full text-secondary hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="space-y-6">
+                <textarea id="confidence-text" rows="8" class="w-full p-4 rounded-lg border border-theme bg-surface text-secondary text-lg focus:outline-none focus:ring-2 focus:ring-primary" placeholder="Partagez votre histoire, votre peur, votre espoir..."></textarea>
+                
+                <div>
+                    <label class="text-sm font-medium text-secondary mb-2 block">Choisir la tonalité émotionnelle :</label>
+                    <div class="flex flex-wrap gap-2" id="emotion-buttons">
+                        <!-- Rempli dynamiquement -->
+                    </div>
+                </div>
+                
+                <div id="moderation-message" class="hidden p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200">
+                    <!-- Message de modération si nécessaire -->
+                </div>
+                
+                <div class="flex justify-end items-center space-x-4">
+                    <button onclick="hideModal('post-modal')" class="font-medium text-secondary hover:underline">Annuler</button>
+                    <button onclick="publishConfidence()" class="bg-primary text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-primary-hover transition-all duration-300">
+                        Publier anonymement
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
     
-    // ========== HELPERS ==========
-    function getChapterEmoji(chapter) {
-      const emojis = {
-        ruptures: '💔',
-        isolement: '😔',
-        trauma: '🔥',
-        espoir: '🤝'
-      };
-      return emojis[chapter] || '🌌';
-    }
-    
-    function formatDate(dateString) {
-      const date = new Date(dateString);
-      const now = new Date();
-      const diff = now - date;
-      
-      const minutes = Math.floor(diff / 60000);
-      const hours = Math.floor(diff / 3600000);
-      const days = Math.floor(diff / 86400000);
-      
-      if (minutes < 1) return 'À l\'instant';
-      if (minutes < 60) return `Il y a ${minutes} min`;
-      if (hours < 24) return `Il y a ${hours}h`;
-      if (days < 7) return `Il y a ${days}j`;
-      return date.toLocaleDateString('fr-FR');
-    }
-    
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
-    
-    // ========== AUTO-INIT ==========
-    window.addEventListener('load', () => {
-      log('🚀 Confidence Book chargé', 'success');
-      log('👤 User ID: ' + userId, 'info');
-      log('Clique sur les boutons de test ci-dessus pour commencer', 'info');
-    });
-  </script>
+    <!-- MODALE PARAMÈTRES -->
+    <div id="settings-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div onclick="hideModal('settings-modal')" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+        
+        <div class="bg-surface rounded-2xl shadow-calm w-full max-w-lg z-10 p-6 md:p-8">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-semibold text-primary">Paramètres</h2>
+                <button onclick="hideModal('settings-modal')" class="p-2 rounded-full text-secondary hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="space-y-6">
+                <div>
+                    <h3 class="text-sm font-semibold text-secondary uppercase tracking-wider mb-3">Apparence</h3>
+                    <div class="flex items-center justify-between bg-gray-100 dark:bg-gray-800 rounded-lg p-4">
+                        <span class="font-medium text-secondary">Mode Sombre</span>
+                        <button id="dark-mode-toggle" onclick="toggleDarkMode()" class="relative inline-flex items-center h-6 rounded-full w-11 transition-colors bg-gray-300 dark:bg-primary">
+                            <span id="dark-mode-indicator" class="inline-block w-4 h-4 transform transition-transform bg-white rounded-full translate-x-1 dark:translate-x-6"></span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="border-t border-theme pt-6 flex justify-end">
+                    <button onclick="logout()" class="bg-red-500 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-red-600 transition-all duration-300">
+                        Quitter
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- JAVASCRIPT -->
+    <script>
+        // ========== CONFIGURATION ==========
+        const API_BASE = '';
+        
+        let currentUserId = null;
+        let currentEmotion = null;
+        let currentChapter = 'all';
+        
+        const CHAPTERS = [
+            { id: 'ruptures', emoji: '💔', name: 'Ruptures & Relations', color: 'red' },
+            { id: 'isolement', emoji: '😔', name: 'Isolement & Tristesse', color: 'blue' },
+            { id: 'traumas', emoji: '🔥', name: 'Traumas & Expériences', color: 'orange' },
+            { id: 'stress', emoji: '🧠', name: 'Stress & Santé Mentale', color: 'purple' },
+            { id: 'spiritualite', emoji: '🪞', name: 'Spiritualité & Quête', color: 'indigo' },
+            { id: 'espoir', emoji: '🤝', name: 'Espoir & Reconstruction', color: 'teal' }
+        ];
+
+        // ========== INITIALISATION ==========
+        document.addEventListener('DOMContentLoaded', () => {
+            initDarkMode();
+            renderChapters();
+            renderEmotionButtons();
+        });
+
+        // ========== DARK MODE ==========
+        function initDarkMode() {
+            const htmlElement = document.documentElement;
+            if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                htmlElement.classList.add('dark');
+            }
+        }
+
+        function toggleDarkMode() {
+            const htmlElement = document.documentElement;
+            if (htmlElement.classList.contains('dark')) {
+                htmlElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                htmlElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        // ========== NAVIGATION ==========
+        function showView(viewId) {
+            document.getElementById('auth-view').classList.add('hidden');
+            document.getElementById('app-view').classList.add('hidden');
+            
+            const viewToShow = document.getElementById(viewId);
+            if (viewToShow) {
+                viewToShow.classList.remove('hidden');
+            }
+        }
+
+        function showModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('hidden');
+            }
+        }
+
+        function hideModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+        }
+
+        async function enterApp() {
+            console.log('📡 Frontend → API: Entering app anonymously');
+            
+            try {
+                const response = await fetch('/api/auth/anonymous', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                console.log('✅ API → Frontend:', result);
+                
+                if (result.success) {
+                    currentUserId = result.userId;
+                    showView('app-view');
+                    await loadConfidences();
+                } else {
+                    alert('Erreur lors de la connexion');
+                }
+            } catch (error) {
+                console.error('❌ Error:', error);
+                alert('Erreur de connexion au serveur');
+            }
+        }
+
+        function logout() {
+            currentUserId = null;
+            showView('auth-view');
+            hideModal('settings-modal');
+        }
+
+        // ========== RENDER CHAPITRES ==========
+        function renderChapters() {
+            const list = document.getElementById('chapters-list');
+            
+            const allChapterHTML = `
+                <li><a href="#" onclick="selectChapter('all'); return false;" class="flex items-center space-x-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/50 group border-l-4 border-primary">
+                    <span class="text-xl">🌐</span> 
+                    <span class="font-bold text-primary">Tous</span>
+                </a></li>
+            `;
+            
+            const chaptersHTML = CHAPTERS.map(ch => `
+                <li><a href="#" onclick="selectChapter('${ch.id}'); return false;" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/50 group">
+                    <span class="text-xl">${ch.emoji}</span> 
+                    <span class="font-medium text-secondary group-hover:text-primary">${ch.name}</span>
+                </a></li>
+            `).join('');
+            
+            list.innerHTML = allChapterHTML + chaptersHTML;
+        }
+
+        function renderEmotionButtons() {
+            const container = document.getElementById('emotion-buttons');
+            
+            const buttonsHTML = CHAPTERS.map(ch => `
+                <button onclick="selectEmotion('${ch.id}')" 
+                        data-emotion="${ch.id}"
+                        class="emotion-btn flex-auto text-sm border-2 border-gray-300 dark:border-gray-600 text-secondary rounded-full py-2 px-4 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/50 transition">
+                    ${ch.emoji} ${ch.name.split('&')[0].trim()}
+                </button>
+            `).join('');
+            
+            container.innerHTML = buttonsHTML;
+        }
+
+        function selectChapter(chapterId) {
+            currentChapter = chapterId;
+            loadConfidences();
+        }
+
+        function selectEmotion(emotionId) {
+            currentEmotion = emotionId;
+            
+            document.querySelectorAll('.emotion-btn').forEach(btn => {
+                if (btn.dataset.emotion === emotionId) {
+                    btn.classList.add('ring-2', 'ring-primary', 'border-primary');
+                } else {
+                    btn.classList.remove('ring-2', 'ring-primary', 'border-primary');
+                }
+            });
+        }
+
+        // ========== CHARGER CONFIDENCES ==========
+        async function loadConfidences() {
+            console.log(`📡 Frontend → API: Loading confidences (chapter: ${currentChapter})`);
+            
+            try {
+                const response = await fetch(`/api/confidences?chapter=${currentChapter}`);
+                const result = await response.json();
+                
+                console.log('✅ API → Frontend:', result);
+                
+                if (result.success) {
+                    renderConfidences(result.data);
+                } else {
+                    document.getElementById('confidences-list').innerHTML = `
+                        <div class="text-center text-secondary py-12">
+                            <p>Erreur lors du chargement des confidences</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('❌ Error:', error);
+                document.getElementById('confidences-list').innerHTML = `
+                    <div class="text-center text-secondary py-12">
+                        <p>Erreur de connexion</p>
+                    </div>
+                `;
+            }
+        }
+
+        function renderConfidences(confidences) {
+            const container = document.getElementById('confidences-list');
+            
+            if (confidences.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-secondary py-12">
+                        <p>Aucune confidence pour le moment. Soyez le premier à partager.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const html = confidences.map(conf => renderConfidence(conf)).join('');
+            container.innerHTML = html;
+        }
+
+        function renderConfidence(conf) {
+            const chapter = CHAPTERS.find(ch => ch.id === conf.emotion) || CHAPTERS[0];
+            
+            const responsesHTML = conf.responses && conf.responses.length > 0 
+                ? conf.responses.map(resp => `
+                    <div class="flex space-x-3">
+                        <div class="w-9 h-9 rounded-full bg-purple-100 dark:bg-purple-800 flex items-center justify-center flex-shrink-0">
+                            <span class="text-lg">${resp.avatar}</span>
+                        </div>
+                        <div class="bg-surface rounded-xl p-3 flex-1">
+                            <p class="text-secondary leading-normal">${escapeHtml(resp.content)}</p>
+                        </div>
+                    </div>
+                `).join('')
+                : '<p class="text-secondary text-sm text-center py-4">Aucune réponse pour le moment. Soyez le premier à répondre.</p>';
+            
+            return `
+                <article class="bg-surface rounded-2xl shadow-calm overflow-hidden mb-6">
+                    <div class="p-5 flex items-center space-x-3 border-b border-theme">
+                        <div class="w-11 h-11 rounded-full bg-${chapter.color}-100 dark:bg-${chapter.color}-800 flex items-center justify-center flex-shrink-0">
+                            <span class="text-xl">${chapter.emoji}</span>
+                        </div>
+                        <div>
+                            <p class="text-sm text-secondary">Une confidence sur le thème :</p>
+                            <h3 class="font-semibold text-${chapter.color}-600 dark:text-${chapter.color}-400">${chapter.name}</h3>
+                        </div>
+                    </div>
+                    
+                    <div class="p-5">
+                        <p class="text-lg leading-relaxed">${escapeHtml(conf.content)}</p>
+                    </div>
+                    
+                    <div class="p-5 border-t border-theme flex flex-wrap gap-3">
+                        <button onclick="react('${conf.id}', 'reconfortant')" class="text-sm border border-theme text-secondary rounded-full py-2 px-4 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/50 transition">
+                            Réconfortant 💙 <span class="ml-1 font-medium">${conf.reactions.reconfortant || 0}</span>
+                        </button>
+                        <button onclick="react('${conf.id}', 'utile')" class="text-sm border border-theme text-secondary rounded-full py-2 px-4 hover:border-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/50 transition">
+                            Utile 💡 <span class="ml-1 font-medium">${conf.reactions.utile || 0}</span>
+                        </button>
+                        <button onclick="react('${conf.id}', 'repense')" class="text-sm border border-theme text-secondary rounded-full py-2 px-4 hover:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                            J'y repense 🤍 <span class="ml-1 font-medium">${conf.reactions.repense || 0}</span>
+                        </button>
+                    </div>
+                    
+                    <div class="p-5 bg-gray-50 dark:bg-gray-800 border-t border-theme">
+                        <button onclick="toggleComments('comments-${conf.id}')" class="text-sm font-semibold text-secondary hover:underline mb-4">
+                            Voir les ${conf.responses?.length || 0} réponse(s) bienveillante(s)
+                        </button>
+                        
+                        <div id="comments-${conf.id}" class="space-y-4 hidden">
+                            ${responsesHTML}
+                        </div>
+                        
+                        <div class="flex space-x-3 mt-4">
+                            <div class="w-9 h-9 rounded-full bg-gray-200 dark:bg-gray-600 flex-shrink-0"></div>
+                            <input type="text" 
+                                   id="response-input-${conf.id}" 
+                                   placeholder="Répondre avec bienveillance..." 
+                                   class="w-full bg-surface border border-theme rounded-full p-2 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                                   onkeypress="if(event.key==='Enter') respondToConfidence('${conf.id}')">
+                        </div>
+                    </div>
+                </article>
+            `;
+        }
+
+        function toggleComments(commentsId) {
+            const section = document.getElementById(commentsId);
+            if (section) {
+                section.classList.toggle('hidden');
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ========== RÉACTIONS ==========
+        async function react(confidenceId, reactionType) {
+            console.log(`📡 Frontend → API: Reacting to ${confidenceId} with ${reactionType}`);
+            
+            try {
+                const response = await fetch('/api/reactions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-Id': currentUserId
+                    },
+                    body: JSON.stringify({
+                        confidenceId,
+                        reactionType
+                    })
+                });
+                
+                const result = await response.json();
+                console.log('✅ API → Frontend:', result);
+                
+                if (result.success) {
+                    await loadConfidences();
+                }
+            } catch (error) {
+                console.error('❌ Error:', error);
+            }
+        }
+
+        // ========== RÉPONDRE À UNE CONFIDENCE ==========
+        async function respondToConfidence(confidenceId) {
+            const input = document.getElementById(`response-input-${confidenceId}`);
+            const content = input.value.trim();
+            
+            if (!content) return;
+            
+            console.log(`📡 Frontend → API: Responding to confidence ${confidenceId}`);
+            
+            try {
+                const response = await fetch('/api/responses', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-Id': currentUserId
+                    },
+                    body: JSON.stringify({
+                        confidenceId,
+                        content
+                    })
+                });
+                
+                const result = await response.json();
+                console.log('✅ API → Frontend:', result);
+                
+                if (result.success) {
+                    input.value = '';
+                    await loadConfidences();
+                } else {
+                    alert(result.message || 'Erreur lors de l\'envoi de la réponse');
+                }
+            } catch (error) {
+                console.error('❌ Error:', error);
+                alert('Erreur de connexion');
+            }
+        }
+
+        // ========== PUBLIER CONFIDENCE ==========
+        async function publishConfidence() {
+            const text = document.getElementById('confidence-text').value.trim();
+            
+            if (!text) {
+                alert('Veuillez écrire votre confidence');
+                return;
+            }
+            
+            if (!currentEmotion) {
+                alert('Veuillez choisir une tonalité émotionnelle');
+                return;
+            }
+            
+            console.log('📡 Frontend → API: Publishing confidence');
+            
+            try {
+                const response = await fetch('/api/confidences', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-Id': currentUserId
+                    },
+                    body: JSON.stringify({
+                        content: text,
+                        emotion: currentEmotion
+                    })
+                });
+                
+                const result = await response.json();
+                console.log('✅ API → Frontend:', result);
+                
+                if (result.success) {
+                    if (result.moderated) {
+                        const msg = document.getElementById('moderation-message');
+                        msg.classList.remove('hidden');
+                        msg.innerHTML = `
+                            <p class="font-medium mb-2">⚠️ Votre confidence a été examinée</p>
+                            <p class="text-sm">${result.moderationMessage}</p>
+                        `;
+                        
+                        setTimeout(() => {
+                            msg.classList.add('hidden');
+                        }, 5000);
+                    }
+                    
+                    if (result.published) {
+                        document.getElementById('confidence-text').value = '';
+                        currentEmotion = null;
+                        document.querySelectorAll('.emotion-btn').forEach(btn => {
+                            btn.classList.remove('ring-2', 'ring-primary', 'border-primary');
+                        });
+                        
+                        hideModal('post-modal');
+                        await loadConfidences();
+                    }
+                } else {
+                    alert(result.message || 'Erreur lors de la publication');
+                }
+            } catch (error) {
+                console.error('❌ Error:', error);
+                alert('Erreur de connexion');
+            }
+        }
+    </script>
+
 </body>
 </html>
