@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 3000;
 
 // ========== MIDDLEWARE ==========
 app.use(express.json());
-app.use(express.static(__dirname)); // Sert le frontend
+app.use(express.static(__dirname));
 
 // Logging middleware
 app.use((req, res, next) => {
@@ -32,33 +32,6 @@ async function initBackend() {
   console.log('✅ [API GATEWAY] Backend ready');
 }
 
-// ========== ROUTE MAP ==========
-const routeMap = {
-  'POST:/api/auth/anonymous': (req) => backend.createAnonymousUser(),
-  'GET:/api/confidences': (req) => backend.getConfidences(req.query),
-  'POST:/api/confidences': (req) => backend.createConfidence(req.body, req.headers),
-  'POST:/api/reactions': (req) => backend.addReaction(req.body, req.headers),
-  'POST:/api/responses': (req) => backend.addResponse(req.body, req.headers),
-  'GET:/api/health': (req) => backend.healthCheck(),
-};
-
-// ========== ROUTER CENTRAL ==========
-function routeRequest(method, path, req) {
-  const routeKey = `${method}:${path}`;
-  
-  console.log(`📡 [API GATEWAY] ${routeKey}`);
-  console.log(`   └─ User: ${req.headers['x-user-id'] || 'anonymous'}`);
-  
-  const handler = routeMap[routeKey];
-  
-  if (!handler) {
-    console.error(`❌ [API GATEWAY] Route not found: ${routeKey}`);
-    throw new Error(`Route not mapped: ${routeKey}`);
-  }
-  
-  return handler(req);
-}
-
 // ========== EXPOSE FRONTEND ==========
 app.get('/', (req, res) => {
   console.log('🌐 [API GATEWAY] Serving frontend');
@@ -70,7 +43,7 @@ app.get('/', (req, res) => {
 // Health check
 app.get('/api/health', async (req, res) => {
   try {
-    const result = await routeRequest('GET', '/api/health', req);
+    const result = await backend.healthCheck();
     res.json(result);
   } catch (error) {
     console.error('❌ [API GATEWAY] Error:', error);
@@ -81,7 +54,8 @@ app.get('/api/health', async (req, res) => {
 // Authentification anonyme
 app.post('/api/auth/anonymous', async (req, res) => {
   try {
-    const result = await routeRequest('POST', '/api/auth/anonymous', req);
+    console.log('📡 [API GATEWAY] POST /api/auth/anonymous');
+    const result = await backend.createAnonymousUser();
     console.log(`✅ [API GATEWAY] Anonymous user created: ${result.userId}`);
     res.json(result);
   } catch (error) {
@@ -93,7 +67,8 @@ app.post('/api/auth/anonymous', async (req, res) => {
 // Récupérer confidences
 app.get('/api/confidences', async (req, res) => {
   try {
-    const result = await routeRequest('GET', '/api/confidences', req);
+    console.log('📡 [API GATEWAY] GET /api/confidences');
+    const result = await backend.getConfidences(req.query);
     console.log(`✅ [API GATEWAY] Returned ${result.data?.length || 0} confidences`);
     res.json(result);
   } catch (error) {
@@ -109,7 +84,7 @@ app.post('/api/confidences', async (req, res) => {
       emotion: req.body.emotion,
       contentLength: req.body.content?.length
     });
-    const result = await routeRequest('POST', '/api/confidences', req);
+    const result = await backend.createConfidence(req.body, req.headers);
     res.json(result);
   } catch (error) {
     console.error('❌ [API GATEWAY] Error:', error);
@@ -121,7 +96,7 @@ app.post('/api/confidences', async (req, res) => {
 app.post('/api/reactions', async (req, res) => {
   try {
     console.log(`💙 [API GATEWAY] Adding reaction:`, req.body);
-    const result = await routeRequest('POST', '/api/reactions', req);
+    const result = await backend.addReaction(req.body, req.headers);
     res.json(result);
   } catch (error) {
     console.error('❌ [API GATEWAY] Error:', error);
@@ -133,7 +108,7 @@ app.post('/api/reactions', async (req, res) => {
 app.post('/api/responses', async (req, res) => {
   try {
     console.log(`💬 [API GATEWAY] Adding response to confidence ${req.body.confidenceId}`);
-    const result = await routeRequest('POST', '/api/responses', req);
+    const result = await backend.addResponse(req.body, req.headers);
     res.json(result);
   } catch (error) {
     console.error('❌ [API GATEWAY] Error:', error);
@@ -164,7 +139,6 @@ async function startServer() {
 ║   📂 Frontend:   index.html                           ║
 ║   ⚙️  Backend:    server.js                            ║
 ║   🔀 Gateway:     api.js (this file)                  ║
-║   ✅ Routing:     ${Object.keys(routeMap).length} endpoints mapped                ║
 ╚═══════════════════════════════════════════════════════╝
     `);
   });
