@@ -137,6 +137,7 @@ export class ConfidenceBookService {
       
       return {
         id: row.id,
+        user_id: row.user_id,
         content: row.content,
         emotion: row.emotion,
         created_at: row.created_at,
@@ -216,6 +217,93 @@ export class ConfidenceBookService {
     };
   }
 
+  async deleteConfidence(confidenceId, headers) {
+    const userId = headers['x-user-id'];
+    
+    if (!userId || !confidenceId) {
+      return { success: false, message: 'Missing required fields' };
+    }
+    
+    // Vérifier que l'utilisateur est bien l'auteur
+    const confidence = await this.db.execute({
+      sql: 'SELECT user_id FROM confidences WHERE id = ?',
+      args: [confidenceId]
+    });
+    
+    if (confidence.rows.length === 0) {
+      return { success: false, message: 'Confidence not found' };
+    }
+    
+    if (confidence.rows[0].user_id !== userId) {
+      return { success: false, message: 'Unauthorized' };
+    }
+    
+    // Supprimer les réactions et réponses associées
+    await this.db.execute({
+      sql: 'DELETE FROM reactions WHERE confidence_id = ?',
+      args: [confidenceId]
+    });
+    
+    await this.db.execute({
+      sql: 'DELETE FROM responses WHERE confidence_id = ?',
+      args: [confidenceId]
+    });
+    
+    // Supprimer la confidence
+    await this.db.execute({
+      sql: 'DELETE FROM confidences WHERE id = ?',
+      args: [confidenceId]
+    });
+    
+    console.log('[BACKEND] Confidence deleted:', confidenceId);
+    
+    return { success: true };
+  }
+
+  async updateConfidence(confidenceId, body, headers) {
+    const userId = headers['x-user-id'];
+    const { content } = body;
+    
+    if (!userId || !confidenceId || !content) {
+      return { success: false, message: 'Missing required fields' };
+    }
+    
+    // Vérifier que l'utilisateur est bien l'auteur
+    const confidence = await this.db.execute({
+      sql: 'SELECT user_id FROM confidences WHERE id = ?',
+      args: [confidenceId]
+    });
+    
+    if (confidence.rows.length === 0) {
+      return { success: false, message: 'Confidence not found' };
+    }
+    
+    if (confidence.rows[0].user_id !== userId) {
+      return { success: false, message: 'Unauthorized' };
+    }
+    
+    // Re-modérer le nouveau contenu
+    console.log('[BACKEND] Moderating updated confidence...');
+    const moderationResult = await this.moderateContent(content, 'confidence');
+    
+    if (!moderationResult.approved) {
+      return {
+        success: false,
+        message: moderationResult.message
+      };
+    }
+    
+    // Mettre à jour
+    await this.db.execute({
+      sql: 'UPDATE confidences SET content = ?, moderation_score = ?, moderation_message = ? WHERE id = ?',
+      args: [content, moderationResult.score, moderationResult.message, confidenceId]
+    });
+    
+    console.log('[BACKEND] Confidence updated:', confidenceId);
+    
+    return { success: true };
+  }
+
   // ========== RÉACTIONS ==========
   
   async addReaction(body, headers) {
@@ -226,10 +314,34 @@ export class ConfidenceBookService {
       return { success: false, message: 'Missing required fields' };
     }
     
-    const reactionId = 'react_' + Math.random().toString(36).substr(2, 9);
-    const now = Date.now();
-    
     try {
+      // Vérifier si l'utilisateur a déjà cette réaction exacte
+      const existing = await this.db.execute({
+        sql: 'SELECT * FROM reactions WHERE confidence_id = ? AND user_id = ? AND type = ?',
+        args: [confidenceId, userId, reactionType]
+      });
+      
+      if (existing.rows.length > 0) {
+        // Toggle OFF : supprimer la réaction
+        await this.db.execute({
+          sql: 'DELETE FROM reactions WHERE confidence_id = ? AND user_id = ? AND type = ?',
+          args: [confidenceId, userId, reactionType]
+        });
+        
+        console.log('[BACKEND] Reaction removed (toggle):', reactionType);
+        return { success: true, action: 'removed' };
+      }
+      
+      // Supprimer toutes les autres réactions de cet utilisateur sur cette confidence
+      await this.db.execute({
+        sql: 'DELETE FROM reactions WHERE confidence_id = ? AND user_id = ?',
+        args: [confidenceId, userId]
+      });
+      
+      // Ajouter la nouvelle réaction
+      const reactionId = 'react_' + Math.random().toString(36).substr(2, 9);
+      const now = Date.now();
+      
       await this.db.execute({
         sql: 'INSERT INTO reactions (id, confidence_id, user_id, type, created_at) VALUES (?, ?, ?, ?, ?)',
         args: [reactionId, confidenceId, userId, reactionType, now]
@@ -237,11 +349,11 @@ export class ConfidenceBookService {
       
       console.log('[BACKEND] Reaction added:', reactionType);
       
-      return { success: true };
+      return { success: true, action: 'added' };
+      
     } catch (error) {
-      // Si déjà réagi (UNIQUE constraint)
-      console.log('[BACKEND] User already reacted');
-      return { success: true, message: 'Already reacted' };
+      console.error('[BACKEND] Reaction error:', error);
+      return { success: false, message: 'Database error' };
     }
   }
 
@@ -313,6 +425,8 @@ export class ConfidenceBookService {
         ? this.getModerationPromptConfidence(content)
         : this.getModerationPromptResponse(content);
       
+      console.log('[BACKEND] Calling Groq API for moderation...');
+      
       const response = await fetch(this.aiEndpoint, {
         method: 'POST',
         headers: {
@@ -322,16 +436,26 @@ export class ConfidenceBookService {
         body: JSON.stringify({
           model: 'llama-3.1-70b-versatile',
           messages: [
-            { role: 'system', content: 'Tu es un modérateur bienveillant pour Confidence Book, une plateforme d\'expression émotionnelle.' },
-            { role: 'user', content: prompt }
+            { 
+              role: 'system', 
+              content: 'Tu es un modérateur bienveillant pour Confidence Book. Réponds UNIQUEMENT par APPROVED ou REJECTED: raison.' 
+            },
+            { 
+              role: 'user', 
+              content: prompt 
+            }
           ],
-          temperature: 0.3,
-          max_tokens: 500
+          temperature: 0.2,
+          max_tokens: 200,
+          top_p: 1,
+          stream: false
         })
       });
       
       if (!response.ok) {
-        console.error('[BACKEND] AI moderation failed:', response.statusText);
+        const errorText = await response.text();
+        console.error('[BACKEND] AI moderation failed:', response.status, errorText);
+        // Fail-open : approuver si l'API ne répond pas
         return {
           approved: true,
           score: 0.7,
@@ -342,6 +466,8 @@ export class ConfidenceBookService {
       
       const data = await response.json();
       const aiResponse = data.choices[0].message.content.trim();
+      
+      console.log('[BACKEND] AI Response:', aiResponse);
       
       // Parser la réponse IA
       if (aiResponse.startsWith('APPROVED')) {
@@ -362,6 +488,7 @@ export class ConfidenceBookService {
         };
       }
       
+      // Si format inattendu, approuver par défaut
       return {
         approved: true,
         score: 0.7,
@@ -370,7 +497,8 @@ export class ConfidenceBookService {
       };
       
     } catch (error) {
-      console.error('[BACKEND] AI moderation error:', error);
+      console.error('[BACKEND] AI moderation error:', error.message);
+      // Fail-open : ne jamais bloquer les utilisateurs en cas d'erreur
       return {
         approved: true,
         score: 0.7,
