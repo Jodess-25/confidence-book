@@ -91,6 +91,11 @@
         <header class="md:hidden bg-surface shadow-calm sticky top-0 z-20 flex items-center justify-between p-4 border-b border-theme">
             <h1 class="text-xl font-bold text-primary">Confidence Book</h1>
             <div class="flex items-center space-x-3">
+                <!-- Badge notifications -->
+                <button onclick="showModal('notifications-modal')" class="p-2 rounded-full relative text-secondary hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
+                    <span id="notif-badge-mobile" class="hidden absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"></span>
+                </button>
                 <button onclick="showModal('post-modal')" class="p-2 rounded-full bg-primary text-white">
                     <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
@@ -267,6 +272,26 @@
         </div>
     </div>
 
+    <!-- MODALE NOTIFICATIONS -->
+    <div id="notifications-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div onclick="hideModal('notifications-modal')" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+        
+        <div class="bg-surface rounded-2xl shadow-calm w-full max-w-lg z-10 p-6 md:p-8 max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6 sticky top-0 bg-surface pb-4">
+                <h2 class="text-2xl font-semibold text-primary">Notifications</h2>
+                <button onclick="hideModal('notifications-modal')" class="p-2 rounded-full text-secondary hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <div id="notifications-list" class="space-y-4">
+                <!-- Rempli dynamiquement -->
+            </div>
+        </div>
+    </div>
+
 
     <!-- JAVASCRIPT -->
     <script>
@@ -274,6 +299,7 @@
         const API_BASE = '';
         
         let currentUserId = null;
+        let currentDeviceId = null;
         let currentEmotion = null;
         let currentChapter = 'all';
         
@@ -294,6 +320,37 @@
             { id: 'courage', emoji: '🙌🏾', label: 'Courage', color: 'green' },
             { id: 'triste', emoji: '💔', label: 'Oh que c\'est triste', color: 'red' }
         ];
+
+        // ========== DEVICE FINGERPRINT ==========
+        async function generateDeviceId() {
+            // Collecter des infos sur l'appareil
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.textBaseline = 'top';
+            ctx.font = '14px Arial';
+            ctx.fillText('fingerprint', 2, 2);
+            const canvasData = canvas.toDataURL();
+            
+            const fingerprint = {
+                userAgent: navigator.userAgent,
+                language: navigator.language,
+                platform: navigator.platform,
+                screenResolution: `${screen.width}x${screen.height}`,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                canvas: canvasData.substring(0, 100)
+            };
+            
+            // Créer un hash simple
+            const fingerprintString = JSON.stringify(fingerprint);
+            let hash = 0;
+            for (let i = 0; i < fingerprintString.length; i++) {
+                const char = fingerprintString.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            
+            return 'device_' + Math.abs(hash).toString(36);
+        }
 
         // ========== INITIALISATION ==========
         document.addEventListener('DOMContentLoaded', () => {
@@ -347,23 +404,20 @@
         }
 
         async function enterApp() {
-            console.log('📡 Frontend → API: Entering app anonymously');
+            console.log('📡 Frontend → API: Entering app with device fingerprint');
             
-            // Vérifier si l'utilisateur a déjà un ID sauvegardé
-            let savedUserId = localStorage.getItem('confidence_user_id');
+            // Générer le device ID
+            currentDeviceId = await generateDeviceId();
+            console.log('🔐 Device ID:', currentDeviceId);
             
-            if (savedUserId) {
-                console.log('✅ User ID found in localStorage:', savedUserId);
-                currentUserId = savedUserId;
-                showView('app-view');
-                await loadConfidences();
-                return;
-            }
-            
-            // Sinon, créer un nouveau user
             try {
-                const response = await fetch('/api/auth/anonymous', {
-                    method: 'POST'
+                // Envoyer le device ID au backend
+                const response = await fetch('/api/auth/device', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ deviceId: currentDeviceId })
                 });
                 
                 const result = await response.json();
@@ -371,10 +425,7 @@
                 
                 if (result.success) {
                     currentUserId = result.userId;
-                    
-                    // ✅ SAUVEGARDER L'ID DANS LOCALSTORAGE
-                    localStorage.setItem('confidence_user_id', currentUserId);
-                    console.log('💾 User ID saved to localStorage');
+                    console.log('✅ User ID from device:', currentUserId);
                     
                     showView('app-view');
                     await loadConfidences();
@@ -388,12 +439,11 @@
         }
 
         function logout() {
-            // Supprimer l'ID du localStorage
-            localStorage.removeItem('confidence_user_id');
             currentUserId = null;
+            currentDeviceId = null;
             showView('auth-view');
             hideModal('settings-modal');
-            console.log('🚪 User logged out, ID removed from localStorage');
+            console.log('🚪 User logged out');
         }
 
         // ========== RENDER CHAPITRES ==========
