@@ -140,6 +140,18 @@ app.put('/api/confidences/:id', async (req, res) => {
   }
 });
 
+// Ajouter réaction sur réponse
+app.post('/api/response-reactions', async (req, res) => {
+  try {
+    console.log(`💙 [API GATEWAY] Adding response reaction:`, req.body);
+    const result = await backend.addResponseReaction(req.body, req.headers);
+    res.json(result);
+  } catch (error) {
+    console.error('❌ [API GATEWAY] Error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // ========== ERROR HANDLERS ==========
 app.use((err, req, res, next) => {
   console.error('💥 [API GATEWAY] Unhandled error:', err);
