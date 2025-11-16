@@ -272,6 +272,15 @@
             { id: 'espoir', emoji: '🤝', name: 'Espoir & Reconstruction', color: 'teal' }
         ];
 
+        const REACTIONS = [
+            { id: 'soutien', emoji: '🤝🏾', label: 'Je te soutiens', color: 'blue' },
+            { id: 'espoir', emoji: '🔥', label: 'Garde espoir', color: 'orange' },
+            { id: 'compatis', emoji: '🤜🏾🤛🏾', label: 'Je compatis', color: 'purple' },
+            { id: 'pas_seul', emoji: '🫂', label: 'T\'es pas seul', color: 'pink' },
+            { id: 'courage', emoji: '🙌🏾', label: 'Courage', color: 'green' },
+            { id: 'triste', emoji: '💔', label: 'Oh que c\'est triste', color: 'red' }
+        ];
+
         // ========== INITIALISATION ==========
         document.addEventListener('DOMContentLoaded', () => {
             initDarkMode();
@@ -464,12 +473,22 @@
             
             const responsesHTML = conf.responses && conf.responses.length > 0 
                 ? conf.responses.map(resp => `
-                    <div class="flex space-x-3">
-                        <div class="w-9 h-9 rounded-full bg-purple-100 dark:bg-purple-800 flex items-center justify-center flex-shrink-0">
-                            <span class="text-lg">${resp.avatar}</span>
+                    <div class="flex flex-col space-y-2">
+                        <div class="flex space-x-3">
+                            <div class="w-9 h-9 rounded-full bg-purple-100 dark:bg-purple-800 flex items-center justify-center flex-shrink-0">
+                                <span class="text-lg">${resp.avatar}</span>
+                            </div>
+                            <div class="bg-surface rounded-xl p-3 flex-1">
+                                <p class="text-secondary leading-normal">${escapeHtml(resp.content)}</p>
+                            </div>
                         </div>
-                        <div class="bg-surface rounded-xl p-3 flex-1">
-                            <p class="text-secondary leading-normal">${escapeHtml(resp.content)}</p>
+                        <div class="flex flex-wrap gap-2 ml-12">
+                            ${REACTIONS.slice(0, 3).map(reaction => `
+                                <button onclick="reactToResponse('${resp.id}',' ${reaction.id}')" 
+                                        class="text-xs border border-theme text-secondary rounded-full py-1 px-3 hover:border-${reaction.color}-400 hover:bg-${reaction.color}-50 dark:hover:bg-${reaction.color}-900/30 transition">
+                                    ${reaction.emoji} <span class="ml-1 font-medium">${resp.reactions[reaction.id] || 0}</span>
+                                </button>
+                            `).join('')}
                         </div>
                     </div>
                 `).join('')
@@ -493,15 +512,12 @@
                     </div>
                     
                     <div class="p-5 border-t border-theme flex flex-wrap gap-3">
-                        <button onclick="react('${conf.id}', 'reconfortant')" class="text-sm border border-theme text-secondary rounded-full py-2 px-4 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/50 transition">
-                            Réconfortant 💙 <span class="ml-1 font-medium">${conf.reactions.reconfortant || 0}</span>
-                        </button>
-                        <button onclick="react('${conf.id}', 'utile')" class="text-sm border border-theme text-secondary rounded-full py-2 px-4 hover:border-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/50 transition">
-                            Utile 💡 <span class="ml-1 font-medium">${conf.reactions.utile || 0}</span>
-                        </button>
-                        <button onclick="react('${conf.id}', 'repense')" class="text-sm border border-theme text-secondary rounded-full py-2 px-4 hover:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-                            J'y repense 🤍 <span class="ml-1 font-medium">${conf.reactions.repense || 0}</span>
-                        </button>
+                        ${REACTIONS.map(reaction => `
+                            <button onclick="react('${conf.id}', '${reaction.id}')" 
+                                    class="text-sm border border-theme text-secondary rounded-full py-2 px-4 hover:border-${reaction.color}-500 hover:bg-${reaction.color}-50 dark:hover:bg-${reaction.color}-900/50 transition">
+                                ${reaction.emoji} ${reaction.label} <span class="ml-1 font-medium">${conf.reactions[reaction.id] || 0}</span>
+                            </button>
+                        `).join('')}
                     </div>
                     
                     <div class="p-5 bg-gray-50 dark:bg-gray-800 border-t border-theme">
