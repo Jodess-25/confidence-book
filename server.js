@@ -124,6 +124,7 @@ export class ConfidenceBookService {
   
   async getConfidences(query) {
     const chapter = query.chapter || 'all';
+    const userId = query.userId; // Pour filtrer "mes confidences"
     const now = Date.now();
     
     let sql = `
@@ -141,7 +142,13 @@ export class ConfidenceBookService {
     
     const args = [now];
     
-    if (chapter !== 'all') {
+    // Filtrer par userId si demandé (mes confidences)
+    if (userId) {
+      sql += ' AND c.user_id = ?';
+      args.push(userId);
+    }
+    // Sinon filtrer par chapitre
+    else if (chapter !== 'all') {
       sql += ' AND c.emotion = ?';
       args.push(chapter);
     }
