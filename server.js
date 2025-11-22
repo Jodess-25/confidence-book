@@ -27,8 +27,26 @@ export class ConfidenceBookService {
       authToken: process.env.DATABASE_AUTH_TOKEN
     });
 
+    // Reset DB si variable d'environnement présente
+    if (process.env.RESET_DB === 'true') {
+      console.log('🔄 [BACKEND] RESET_DB flag detected, dropping all tables...');
+      await this.dropTables();
+    }
+
     await this.createTables();
     console.log('✅ [BACKEND] Database connected');
+  }
+
+  async dropTables() {
+    try {
+      await this.db.execute('DROP TABLE IF EXISTS responses');
+      await this.db.execute('DROP TABLE IF EXISTS reactions');
+      await this.db.execute('DROP TABLE IF EXISTS confidences');
+      await this.db.execute('DROP TABLE IF EXISTS users');
+      console.log('✅ [BACKEND] All tables dropped');
+    } catch (error) {
+      console.error('[BACKEND] Error dropping tables:', error);
+    }
   }
 
   async createTables() {
