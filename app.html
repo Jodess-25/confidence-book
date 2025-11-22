@@ -50,13 +50,86 @@
         .dark .shadow-calm { box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.1); }
         
         /* Animations réactions */
-        @keyframes bounce { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+        }
         
-        .reaction-soutien { animation: bounce 0.5s ease; }
-        .reaction-espoir { animation: pulse 0.5s ease; }
-        .reaction-courage { animation: shake 0.5s ease; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.1); }
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0) rotate(0deg); }
+            25% { transform: translateX(-5px) rotate(-5deg); }
+            75% { transform: translateX(5px) rotate(5deg); }
+        }
+        
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            25% { transform: scale(1.2); }
+            50% { transform: scale(1); }
+            75% { transform: scale(1.15); }
+        }
+        
+        @keyframes glow {
+            0%, 100% { filter: brightness(1) drop-shadow(0 0 0px currentColor); }
+            50% { filter: brightness(1.3) drop-shadow(0 0 8px currentColor); }
+        }
+        
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-10deg); }
+            75% { transform: rotate(10deg); }
+        }
+        
+        /* Classes d'animation par réaction */
+        .reaction-soutien:active { animation: bounce 0.5s ease; }
+        .reaction-espoir:active { animation: glow 0.6s ease; }
+        .reaction-compatis:active { animation: pulse 0.5s ease; }
+        .reaction-pas_seul:active { animation: heartbeat 0.6s ease; }
+        .reaction-courage:active { animation: shake 0.5s ease; }
+        .reaction-triste:active { animation: wiggle 0.5s ease; }
+        
+        /* Style réactions modal (long-press) */
+        .reactions-modal {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--theme-surface);
+            border-top-left-radius: 1.5rem;
+            border-top-right-radius: 1.5rem;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 50;
+        }
+        
+        .reactions-modal.show {
+            transform: translateY(0);
+        }
+        
+        .reaction-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            border-radius: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .reaction-item:active {
+            transform: scale(1.2);
+        }
+        
+        .reaction-emoji {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
     </style>
 </head>
 
@@ -144,6 +217,20 @@
         </div>
     </div>
 
+    <!-- Modal Réactions (Long-Press) -->
+    <div id="reactions-modal" class="reactions-modal">
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Choisir une réaction</h3>
+                <button onclick="hideReactionsModal()" class="text-secondary hover:text-primary">✕</button>
+            </div>
+            
+            <div class="grid grid-cols-3 gap-4" id="reactions-grid">
+                <!-- Rempli dynamiquement -->
+            </div>
+        </div>
+    </div>
+
     <!-- Pop-up Donation (apparaît toutes les 15min) -->
     <div id="donation-popup" class="hidden fixed bottom-6 left-6 bg-surface rounded-xl shadow-2xl p-4 max-w-sm border border-theme z-30">
         <div class="flex items-start space-x-3">
@@ -183,6 +270,9 @@
             { id: 'triste', label: 'Oh que c\'est triste', emoji: '💔', color: 'red' }
         ];
 
+        let longPressTimer = null;
+        let currentConfidenceId = null;
+
         // Vérifier auth
         if (!currentUserId) {
             window.location.href = '/';
@@ -192,9 +282,21 @@
         document.addEventListener('DOMContentLoaded', () => {
             renderChaptersTabs();
             renderEmotionButtons();
+            renderReactionsGrid();
             loadConfidences();
             startDonationTimer();
         });
+
+        function renderReactionsGrid() {
+            const grid = document.getElementById('reactions-grid');
+            grid.innerHTML = REACTIONS.map(r => `
+                <div class="reaction-item bg-${r.color}-50 dark:bg-${r.color}-900/30 hover:bg-${r.color}-100 dark:hover:bg-${r.color}-900/50" 
+                     onclick="selectReactionFromModal('${r.id}')">
+                    <div class="reaction-emoji">${r.emoji}</div>
+                    <p class="text-xs font-medium text-center">${r.label}</p>
+                </div>
+            `).join('');
+        }
 
         function renderChaptersTabs() {
             const container = document.getElementById('chapters-tabs');
@@ -282,11 +384,30 @@
                         </div>
                         
                         <div class="px-5 pb-5 flex flex-wrap gap-2">
-                            ${REACTIONS.map(r => `
-                                <button onclick="react('${conf.id}', '${r.id}')" class="text-sm border border-theme rounded-full py-1 px-3 hover:border-${r.color}-500 hover:bg-${r.color}-50 dark:hover:bg-${r.color}-900/50 transition">
-                                    ${r.emoji} ${conf.reactions?.[r.id] || 0}
-                                </button>
-                            `).join('')}
+                            ${REACTIONS.map((r, idx) => {
+                                // Bouton principal (première réaction)
+                                if (idx === 0) {
+                                    return `
+                                        <button 
+                                            class="reaction-${r.id} text-sm border border-theme rounded-full py-1 px-3 hover:border-${r.color}-500 hover:bg-${r.color}-50 dark:hover:bg-${r.color}-900/50 transition"
+                                            onclick="react('${conf.id}', '${r.id}')"
+                                            onmousedown="startLongPress('${conf.id}')"
+                                            onmouseup="cancelLongPress()"
+                                            onmouseleave="cancelLongPress()"
+                                            ontouchstart="startLongPress('${conf.id}')"
+                                            ontouchend="cancelLongPress()">
+                                            ${r.emoji} ${conf.reactions?.[r.id] || 0}
+                                        </button>
+                                    `;
+                                }
+                                // Autres réactions (cachées, accessibles via long-press)
+                                return '';
+                            }).join('')}
+                            <button 
+                                onclick="showReactionsModal('${conf.id}')" 
+                                class="text-sm border border-theme rounded-full py-1 px-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                                + Voir toutes
+                            </button>
                         </div>
                         
                         <div class="px-5 pb-5">
@@ -345,6 +466,38 @@
                 loadConfidences();
             } catch (error) {
                 console.error('Error:', error);
+            }
+        }
+
+        // Système Long-Press
+        function startLongPress(confId) {
+            currentConfidenceId = confId;
+            longPressTimer = setTimeout(() => {
+                showReactionsModal(confId);
+            }, 500); // 500ms = long press
+        }
+
+        function cancelLongPress() {
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+        }
+
+        function showReactionsModal(confId) {
+            currentConfidenceId = confId;
+            document.getElementById('reactions-modal').classList.add('show');
+        }
+
+        function hideReactionsModal() {
+            document.getElementById('reactions-modal').classList.remove('show');
+            currentConfidenceId = null;
+        }
+
+        async function selectReactionFromModal(reactionId) {
+            if (currentConfidenceId) {
+                await react(currentConfidenceId, reactionId);
+                hideReactionsModal();
             }
         }
 
