@@ -1,559 +1,455 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Confidence Book - Feed</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        
-        .dark ::-webkit-scrollbar-thumb { background: #475569; }
-        .dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
-        
-        * { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
-        .dark * { scrollbar-color: #475569 transparent; }
-        
-        .theme-calm {
-            --theme-bg: #f8f9fa;
-            --theme-surface: #ffffff;
-            --theme-primary: #3b82f6;
-            --theme-text-primary: #1f2937;
-            --theme-text-secondary: #6b7280;
-            --theme-border: #e5e7eb;
-        }
-        
-        .dark .theme-calm {
-            --theme-bg: #111827;
-            --theme-surface: #1f2937;
-            --theme-primary: #60a5fa;
-            --theme-text-primary: #f9fafb;
-            --theme-text-secondary: #9ca3af;
-            --theme-border: #374151;
-        }
-        
-        body { background-color: var(--theme-bg); color: var(--theme-text-primary); }
-        .bg-surface { background-color: var(--theme-surface); }
-        .bg-primary { background-color: var(--theme-primary); }
-        .text-primary { color: var(--theme-primary); }
-        .text-secondary { color: var(--theme-text-secondary); }
-        .border-theme { border-color: var(--theme-border); }
-        .shadow-calm { box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.05); }
-        .dark .shadow-calm { box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.1); }
-        
-        /* Animations réactions */
-        @keyframes bounce {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.3); }
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.6; transform: scale(1.1); }
-        }
-        
-        @keyframes shake {
-            0%, 100% { transform: translateX(0) rotate(0deg); }
-            25% { transform: translateX(-5px) rotate(-5deg); }
-            75% { transform: translateX(5px) rotate(5deg); }
-        }
-        
-        @keyframes heartbeat {
-            0%, 100% { transform: scale(1); }
-            25% { transform: scale(1.2); }
-            50% { transform: scale(1); }
-            75% { transform: scale(1.15); }
-        }
-        
-        @keyframes glow {
-            0%, 100% { filter: brightness(1) drop-shadow(0 0 0px currentColor); }
-            50% { filter: brightness(1.3) drop-shadow(0 0 8px currentColor); }
-        }
-        
-        @keyframes wiggle {
-            0%, 100% { transform: rotate(0deg); }
-            25% { transform: rotate(-10deg); }
-            75% { transform: rotate(10deg); }
-        }
-        
-        /* Classes d'animation par réaction */
-        .reaction-soutien:active { animation: bounce 0.5s ease; }
-        .reaction-espoir:active { animation: glow 0.6s ease; }
-        .reaction-compatis:active { animation: pulse 0.5s ease; }
-        .reaction-pas_seul:active { animation: heartbeat 0.6s ease; }
-        .reaction-courage:active { animation: shake 0.5s ease; }
-        .reaction-triste:active { animation: wiggle 0.5s ease; }
-        
-        /* Style réactions modal (long-press) */
-        .reactions-modal {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: var(--theme-surface);
-            border-top-left-radius: 1.5rem;
-            border-top-right-radius: 1.5rem;
-            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
-            transform: translateY(100%);
-            transition: transform 0.3s ease;
-            z-index: 50;
-        }
-        
-        .reactions-modal.show {
-            transform: translateY(0);
-        }
-        
-        .reaction-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-            border-radius: 1rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .reaction-item:active {
-            transform: scale(1.2);
-        }
-        
-        .reaction-emoji {
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LDSS Node v4 - 6 Workers</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:system-ui;background:#0a0a12;color:#e0e0e0;padding:1rem;min-height:100vh}
+    h1{font-size:1.3rem;background:linear-gradient(90deg,#00d4ff,#7b2cbf);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
+    .status{display:flex;align-items:center;gap:.5rem}
+    .dot{width:10px;height:10px;border-radius:50%;background:#22c55e;box-shadow:0 0 8px #22c55e}
+    .workers{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:1rem}
+    .worker{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:.5rem;font-size:.75rem}
+    .worker-name{color:#00d4ff;font-weight:600}
+    .worker-count{font-size:1.2rem;font-weight:bold}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin-bottom:1rem}
+    .stat{background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.2);border-radius:6px;padding:.5rem;text-align:center}
+    .stat-val{font-size:1.5rem;font-weight:bold;color:#00d4ff}
+    .stat-label{font-size:.65rem;color:#888}
+    #output{background:#000;border:2px solid #7b2cbf;border-radius:8px;padding:.75rem;font-family:monospace;font-size:.75rem;min-height:80px;max-height:200px;overflow-y:auto;white-space:pre-wrap;word-break:break-all}
+  </style>
 </head>
+<body>
+  <div class="header">
+    <h1>🗄️ LDSS Node v4</h1>
+    <div class="status"><div class="dot" id="dot"></div><span id="status">Init...</span></div>
+  </div>
 
-<body class="theme-calm">
+  <div class="workers" id="workers"></div>
+  
+  <div class="stats">
+    <div class="stat"><div class="stat-val" id="s-total">0</div><div class="stat-label">Total Records</div></div>
+    <div class="stat"><div class="stat-val" id="s-size">0</div><div class="stat-label">Size (KB)</div></div>
+    <div class="stat"><div class="stat-val" id="s-ops">0</div><div class="stat-label">Operations</div></div>
+    <div class="stat"><div class="stat-val" id="s-uptime">0s</div><div class="stat-label">Uptime</div></div>
+  </div>
+  
+  <div id="output">{"status":"initializing..."}</div>
 
-    <!-- Header -->
-    <header class="bg-surface shadow-calm sticky top-0 z-20 border-b border-theme">
-        <div class="container mx-auto max-w-7xl px-4 py-4 flex items-center justify-between">
-            <div class="flex items-center space-x-4">
-                <svg class="w-8 h-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-                </svg>
-                <h1 class="text-xl font-bold text-primary">Confidence Book</h1>
-            </div>
-            
-            <div class="flex items-center space-x-3">
-                <button onclick="showModal('post-modal')" class="bg-primary text-white px-4 py-2 rounded-full font-medium hover:opacity-90 transition">
-                    ✍️ Écrire
-                </button>
-                <a href="/profile.html" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
-                    <svg class="w-6 h-6 text-secondary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                    </svg>
-                </a>
-                <a href="/settings.html" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
-                    <svg class="w-6 h-6 text-secondary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                </a>
-            </div>
-        </div>
-    </header>
+<script>
+// ═══════════════════════════════════════════════════════════════
+// LDSS v4 - LOCAL DISTRIBUTED STORAGE SYSTEM
+// 6 Workers Architecture by Anzize Daouda
+// ═══════════════════════════════════════════════════════════════
 
-    <!-- Container Principal -->
-    <div class="container mx-auto max-w-4xl px-4 py-8">
-        
-        <!-- Tabs Chapitres -->
-        <div class="bg-surface rounded-2xl shadow-calm p-4 mb-6 overflow-x-auto">
-            <div class="flex space-x-2 whitespace-nowrap" id="chapters-tabs">
-                <!-- Rempli dynamiquement -->
-            </div>
-        </div>
+const LDSS = {
+  db: null,
+  startTime: Date.now(),
+  opCount: 0,
+  totalSize: 0,
+  
+  // 6 Workers Configuration
+  workers: {
+    'primary': { name: 'IndexedDB-Primary', tech: 'IndexedDB', collections: ['routing', 'metadata', 'config'], count: 0 },
+    'userdata': { name: 'IndexedDB-UserData', tech: 'IndexedDB', collections: ['users', 'profiles', 'settings', 'preferences'], count: 0 },
+    'media': { name: 'IndexedDB-Media', tech: 'IndexedDB', collections: ['images', 'videos', 'documents', 'files', 'avatars'], count: 0 },
+    'analytics': { name: 'SQLite-Analytics', tech: 'IndexedDB', collections: ['logs', 'events', 'metrics', 'analytics'], count: 0 },
+    'cache': { name: 'Cache-Assets', tech: 'IndexedDB', collections: ['cache', 'assets', 'temp'], count: 0 },
+    'large': { name: 'OPFS-Large', tech: 'IndexedDB', collections: ['backups', 'exports', 'large'], count: 0 }
+  },
 
-        <!-- Feed -->
-        <div id="confidences-list" class="space-y-6">
-            <div class="text-center text-secondary py-12">
-                <p>Chargement des confidences...</p>
-            </div>
-        </div>
+  // ─────────────────────────────────────────
+  // ROUTING: Determine which worker handles a collection
+  // ─────────────────────────────────────────
+  getWorkerForCollection(collection) {
+    for (const [key, worker] of Object.entries(this.workers)) {
+      if (worker.collections.some(c => collection.toLowerCase().includes(c))) {
+        return key;
+      }
+    }
+    return 'primary'; // Default
+  },
 
-    </div>
-
-    <!-- Modal Création Confidence -->
-    <div id="post-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-        <div class="bg-surface rounded-2xl shadow-calm w-full max-w-2xl p-6 md:p-8">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-semibold text-primary">✍️ Écrire une confidence</h2>
-                <button onclick="hideModal('post-modal')" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
-                    <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-            
-            <textarea id="confidence-text" rows="8" class="w-full p-4 rounded-lg border border-theme bg-surface text-secondary text-lg focus:outline-none focus:ring-2 focus:ring-primary" placeholder="Partagez votre histoire, votre peur, votre espoir..."></textarea>
-            
-            <div class="mt-6">
-                <label class="text-sm font-medium text-secondary mb-2 block">Choisir la tonalité émotionnelle :</label>
-                <div class="flex flex-wrap gap-2" id="emotion-buttons">
-                    <!-- Rempli dynamiquement -->
-                </div>
-            </div>
-            
-            <div id="moderation-message" class="hidden mt-4 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200">
-                <!-- Message modération -->
-            </div>
-            
-            <div class="flex justify-end items-center space-x-4 mt-6">
-                <button onclick="hideModal('post-modal')" class="font-medium text-secondary hover:underline">Annuler</button>
-                <button onclick="publishConfidence()" class="bg-primary text-white font-semibold py-2 px-6 rounded-lg hover:opacity-90 transition">
-                    Publier anonymement
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Réactions (Long-Press) -->
-    <div id="reactions-modal" class="reactions-modal">
-        <div class="p-6">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-semibold">Choisir une réaction</h3>
-                <button onclick="hideReactionsModal()" class="text-secondary hover:text-primary">✕</button>
-            </div>
-            
-            <div class="grid grid-cols-3 gap-4" id="reactions-grid">
-                <!-- Rempli dynamiquement -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Pop-up Donation (apparaît toutes les 15min) -->
-    <div id="donation-popup" class="hidden fixed bottom-6 left-6 bg-surface rounded-xl shadow-2xl p-4 max-w-sm border border-theme z-30">
-        <div class="flex items-start space-x-3">
-            <div class="text-2xl">💙</div>
-            <div class="flex-1">
-                <p class="font-semibold text-sm mb-1">Soutenez Confidence Book</p>
-                <p class="text-xs text-secondary mb-3">Ce projet est gratuit grâce à vos dons</p>
-                <a href="https://wa.me/22969056283" target="_blank" class="block text-center bg-green-600 text-white text-xs font-medium py-2 rounded-lg hover:bg-green-700 transition">
-                    Faire un don via WhatsApp
-                </a>
-            </div>
-            <button onclick="hideDonationPopup()" class="text-gray-400 hover:text-gray-600">✕</button>
-        </div>
-    </div>
-
-    <!-- JAVASCRIPT -->
-    <script>
-        let currentUserId = localStorage.getItem('confidence_user_id');
-        let currentEmotion = null;
-        let currentChapter = 'all';
-        
-        const CHAPTERS = [
-            { id: 'ruptures', emoji: '💔', name: 'Ruptures', color: 'red' },
-            { id: 'isolement', emoji: '😔', name: 'Isolement', color: 'blue' },
-            { id: 'traumas', emoji: '🔥', name: 'Traumas', color: 'orange' },
-            { id: 'stress', emoji: '🧠', name: 'Stress', color: 'purple' },
-            { id: 'spiritualite', emoji: '🪞', name: 'Spiritualité', color: 'indigo' },
-            { id: 'espoir', emoji: '🤝', name: 'Espoir', color: 'teal' }
-        ];
-
-        const REACTIONS = [
-            { id: 'soutien', label: 'Je te soutiens', emoji: '🤝', color: 'blue' },
-            { id: 'espoir', label: 'Garde espoir', emoji: '🔥', color: 'orange' },
-            { id: 'compatis', label: 'Je compatis', emoji: '🤜🤛', color: 'purple' },
-            { id: 'pas_seul', label: 'T\'es pas seul', emoji: '🫂', color: 'green' },
-            { id: 'courage', label: 'Courage', emoji: '🙌', color: 'yellow' },
-            { id: 'triste', label: 'Oh que c\'est triste', emoji: '💔', color: 'red' }
-        ];
-
-        let longPressTimer = null;
-        let currentConfidenceId = null;
-
-        // Vérifier auth
-        if (!currentUserId) {
-            window.location.href = '/';
-        }
-
-        // Init
-        document.addEventListener('DOMContentLoaded', () => {
-            renderChaptersTabs();
-            renderEmotionButtons();
-            renderReactionsGrid();
-            loadConfidences();
-            startDonationTimer();
+  // ─────────────────────────────────────────
+  // INIT DATABASE
+  // ─────────────────────────────────────────
+  async init() {
+    return new Promise((res, rej) => {
+      const req = indexedDB.open('LDSS_v4', 2);
+      req.onerror = () => rej(req.error);
+      req.onsuccess = () => { this.db = req.result; res(); };
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        // Create store for each worker
+        Object.keys(this.workers).forEach(worker => {
+          if (!db.objectStoreNames.contains(worker)) {
+            const store = db.createObjectStore(worker, { keyPath: 'id', autoIncrement: true });
+            store.createIndex('collection', 'collection', { unique: false });
+            store.createIndex('timestamp', 'ts', { unique: false });
+          }
         });
+      };
+    });
+  },
 
-        function renderReactionsGrid() {
-            const grid = document.getElementById('reactions-grid');
-            grid.innerHTML = REACTIONS.map(r => `
-                <div class="reaction-item bg-${r.color}-50 dark:bg-${r.color}-900/30 hover:bg-${r.color}-100 dark:hover:bg-${r.color}-900/50" 
-                     onclick="selectReactionFromModal('${r.id}')">
-                    <div class="reaction-emoji">${r.emoji}</div>
-                    <p class="text-xs font-medium text-center">${r.label}</p>
-                </div>
-            `).join('');
-        }
+  // ─────────────────────────────────────────
+  // WRITE
+  // ─────────────────────────────────────────
+  async write(collection, data) {
+    const worker = this.getWorkerForCollection(collection);
+    return new Promise((res, rej) => {
+      const tx = this.db.transaction([worker], 'readwrite');
+      const store = tx.objectStore(worker);
+      
+      const record = {
+        collection,
+        data,
+        ts: Date.now(),
+        size: JSON.stringify(data).length,
+        worker
+      };
+      
+      const req = store.add(record);
+      req.onsuccess = () => {
+        this.opCount++;
+        this.workers[worker].count++;
+        this.totalSize += record.size;
+        res({ ok: true, id: req.result, worker, collection });
+      };
+      req.onerror = () => rej(req.error);
+    });
+  },
 
-        function renderChaptersTabs() {
-            const container = document.getElementById('chapters-tabs');
-            const allTab = `<button onclick="selectChapter('all')" class="px-4 py-2 rounded-full bg-blue-100 dark:bg-blue-900 text-primary font-medium text-sm">🌐 Tous</button>`;
-            const tabs = CHAPTERS.map(ch => `
-                <button onclick="selectChapter('${ch.id}')" class="px-4 py-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-secondary font-medium text-sm">
-                    ${ch.emoji} ${ch.name}
-                </button>
-            `).join('');
-            container.innerHTML = allTab + tabs;
-        }
+  // ─────────────────────────────────────────
+  // WRITE BATCH
+  // ─────────────────────────────────────────
+  async writeBatch(collection, items) {
+    const worker = this.getWorkerForCollection(collection);
+    return new Promise((res, rej) => {
+      const tx = this.db.transaction([worker], 'readwrite');
+      const store = tx.objectStore(worker);
+      let count = 0;
+      let totalSize = 0;
+      
+      items.forEach(item => {
+        const size = JSON.stringify(item).length;
+        store.add({
+          collection,
+          data: item,
+          ts: Date.now(),
+          size,
+          worker
+        });
+        count++;
+        totalSize += size;
+      });
+      
+      tx.oncomplete = () => {
+        this.opCount += count;
+        this.workers[worker].count += count;
+        this.totalSize += totalSize;
+        res({ ok: true, count, worker, collection });
+      };
+      tx.onerror = () => rej(tx.error);
+    });
+  },
 
-        function renderEmotionButtons() {
-            const container = document.getElementById('emotion-buttons');
-            container.innerHTML = CHAPTERS.map(ch => `
-                <button onclick="selectEmotion('${ch.id}')" data-emotion="${ch.id}" class="emotion-btn flex-auto text-sm border-2 border-gray-300 dark:border-gray-600 text-secondary rounded-full py-2 px-4 hover:border-${ch.color}-500 transition">
-                    ${ch.emoji} ${ch.name}
-                </button>
-            `).join('');
-        }
+  // ─────────────────────────────────────────
+  // READ
+  // ─────────────────────────────────────────
+  async read(collection) {
+    const worker = this.getWorkerForCollection(collection);
+    return new Promise((res, rej) => {
+      const tx = this.db.transaction([worker], 'readonly');
+      const store = tx.objectStore(worker);
+      const idx = store.index('collection');
+      const req = idx.getAll(collection);
+      
+      req.onsuccess = () => {
+        this.opCount++;
+        res({
+          ok: true,
+          collection,
+          worker,
+          count: req.result.length,
+          data: req.result
+        });
+      };
+      req.onerror = () => rej(req.error);
+    });
+  },
 
-        function selectChapter(id) {
-            currentChapter = id;
-            loadConfidences();
-        }
+  // ─────────────────────────────────────────
+  // READ BY ID
+  // ─────────────────────────────────────────
+  async readById(collection, id) {
+    const worker = this.getWorkerForCollection(collection);
+    return new Promise((res, rej) => {
+      const tx = this.db.transaction([worker], 'readonly');
+      const req = tx.objectStore(worker).get(Number(id));
+      
+      req.onsuccess = () => {
+        this.opCount++;
+        res({ ok: true, data: req.result || null });
+      };
+      req.onerror = () => rej(req.error);
+    });
+  },
 
-        function selectEmotion(id) {
-            currentEmotion = id;
-            document.querySelectorAll('.emotion-btn').forEach(btn => {
-                if (btn.dataset.emotion === id) {
-                    btn.classList.add('ring-2', 'ring-primary', 'border-primary');
-                } else {
-                    btn.classList.remove('ring-2', 'ring-primary', 'border-primary');
-                }
-            });
-        }
+  // ─────────────────────────────────────────
+  // COUNT
+  // ─────────────────────────────────────────
+  async count(collection) {
+    const worker = this.getWorkerForCollection(collection);
+    return new Promise((res, rej) => {
+      const tx = this.db.transaction([worker], 'readonly');
+      const idx = tx.objectStore(worker).index('collection');
+      const req = idx.count(collection);
+      
+      req.onsuccess = () => {
+        this.opCount++;
+        res({ ok: true, collection, count: req.result });
+      };
+      req.onerror = () => rej(req.error);
+    });
+  },
 
-        async function loadConfidences() {
-            try {
-                const response = await fetch(`/api/confidences?chapter=${currentChapter}`);
-                const result = await response.json();
-                
-                if (result.success) {
-                    renderConfidences(result.data);
-                }
-            } catch (error) {
-                console.error('Error:', error);
-            }
-        }
+  // ─────────────────────────────────────────
+  // LIST ALL
+  // ─────────────────────────────────────────
+  async list() {
+    const results = { ok: true, workers: {}, collections: {}, total: 0 };
+    
+    for (const [workerKey, workerInfo] of Object.entries(this.workers)) {
+      try {
+        const data = await new Promise((res, rej) => {
+          const tx = this.db.transaction([workerKey], 'readonly');
+          const req = tx.objectStore(workerKey).getAll();
+          req.onsuccess = () => res(req.result);
+          req.onerror = () => rej(req.error);
+        });
+        
+        results.workers[workerKey] = {
+          name: workerInfo.name,
+          count: data.length
+        };
+        
+        data.forEach(item => {
+          if (!results.collections[item.collection]) {
+            results.collections[item.collection] = 0;
+          }
+          results.collections[item.collection]++;
+          results.total++;
+        });
+        
+        this.workers[workerKey].count = data.length;
+      } catch(e) {
+        results.workers[workerKey] = { name: workerInfo.name, count: 0, error: e.message };
+      }
+    }
+    
+    this.opCount++;
+    return results;
+  },
 
-        function renderConfidences(confidences) {
-            const container = document.getElementById('confidences-list');
-            
-            if (confidences.length === 0) {
-                container.innerHTML = '<div class="text-center text-secondary py-12"><p>Aucune confidence. Soyez le premier à partager.</p></div>';
-                return;
-            }
-            
-            container.innerHTML = confidences.map(conf => {
-                const chapter = CHAPTERS.find(ch => ch.id === conf.emotion) || CHAPTERS[0];
-                const isOwner = conf.user_id === currentUserId;
-                
-                return `
-                    <article class="bg-surface rounded-2xl shadow-calm overflow-hidden">
-                        <div class="p-5 flex items-center justify-between border-b border-theme">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-11 h-11 rounded-full bg-${chapter.color}-100 dark:bg-${chapter.color}-800 flex items-center justify-center">
-                                    <span class="text-xl">${chapter.emoji}</span>
-                                </div>
-                                <div>
-                                    <p class="text-sm text-secondary">${chapter.name}</p>
-                                    <p class="text-xs text-secondary">${timeAgo(conf.created_at)}</p>
-                                </div>
-                            </div>
-                            ${isOwner ? `
-                                <div class="flex gap-2">
-                                    <button onclick="editConfidence('${conf.id}')" class="text-sm text-blue-500 hover:underline">✏️</button>
-                                    <button onclick="deleteConfidence('${conf.id}')" class="text-sm text-red-500 hover:underline">🗑️</button>
-                                </div>
-                            ` : ''}
-                        </div>
-                        
-                        <div class="p-5">
-                            <p class="text-lg leading-relaxed">${escapeHtml(conf.content)}</p>
-                        </div>
-                        
-                        <div class="px-5 pb-5 flex flex-wrap gap-2">
-                            ${REACTIONS.map((r, idx) => {
-                                // Bouton principal (première réaction)
-                                if (idx === 0) {
-                                    return `
-                                        <button 
-                                            class="reaction-${r.id} text-sm border border-theme rounded-full py-1 px-3 hover:border-${r.color}-500 hover:bg-${r.color}-50 dark:hover:bg-${r.color}-900/50 transition"
-                                            onclick="react('${conf.id}', '${r.id}')"
-                                            onmousedown="startLongPress('${conf.id}')"
-                                            onmouseup="cancelLongPress()"
-                                            onmouseleave="cancelLongPress()"
-                                            ontouchstart="startLongPress('${conf.id}')"
-                                            ontouchend="cancelLongPress()">
-                                            ${r.emoji} ${conf.reactions?.[r.id] || 0}
-                                        </button>
-                                    `;
-                                }
-                                // Autres réactions (cachées, accessibles via long-press)
-                                return '';
-                            }).join('')}
-                            <button 
-                                onclick="showReactionsModal('${conf.id}')" 
-                                class="text-sm border border-theme rounded-full py-1 px-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-                                + Voir toutes
-                            </button>
-                        </div>
-                        
-                        <div class="px-5 pb-5">
-                            <a href="/post.html?id=${conf.id}" class="block text-center text-primary font-medium py-2 hover:underline">
-                                💬 Voir les ${conf.responses?.length || 0} commentaire(s)
-                            </a>
-                        </div>
-                    </article>
-                `;
-            }).join('');
-        }
+  // ─────────────────────────────────────────
+  // DELETE
+  // ─────────────────────────────────────────
+  async delete(collection, id) {
+    const worker = this.getWorkerForCollection(collection);
+    return new Promise((res, rej) => {
+      const tx = this.db.transaction([worker], 'readwrite');
+      const req = tx.objectStore(worker).delete(Number(id));
+      
+      req.onsuccess = () => {
+        this.opCount++;
+        res({ ok: true, deleted: id });
+      };
+      req.onerror = () => rej(req.error);
+    });
+  },
 
-        async function publishConfidence() {
-            const text = document.getElementById('confidence-text').value.trim();
-            
-            if (!text || !currentEmotion) {
-                alert('Veuillez remplir tous les champs');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/confidences', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-User-Id': currentUserId
-                    },
-                    body: JSON.stringify({ content: text, emotion: currentEmotion })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success && result.published) {
-                    hideModal('post-modal');
-                    document.getElementById('confidence-text').value = '';
-                    currentEmotion = null;
-                    loadConfidences();
-                } else {
-                    alert(result.message || 'Erreur');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-            }
-        }
+  // ─────────────────────────────────────────
+  // CLEAR COLLECTION
+  // ─────────────────────────────────────────
+  async clearCollection(collection) {
+    const worker = this.getWorkerForCollection(collection);
+    return new Promise(async (res, rej) => {
+      try {
+        // Get all IDs for this collection
+        const data = await this.read(collection);
+        const tx = this.db.transaction([worker], 'readwrite');
+        const store = tx.objectStore(worker);
+        
+        data.data.forEach(item => store.delete(item.id));
+        
+        tx.oncomplete = () => {
+          this.opCount++;
+          res({ ok: true, cleared: collection, count: data.count });
+        };
+        tx.onerror = () => rej(tx.error);
+      } catch(e) {
+        rej(e);
+      }
+    });
+  },
 
-        async function react(confId, reactionId) {
-            try {
-                await fetch('/api/reactions', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-User-Id': currentUserId
-                    },
-                    body: JSON.stringify({ confidenceId: confId, reactionType: reactionId })
-                });
-                loadConfidences();
-            } catch (error) {
-                console.error('Error:', error);
-            }
-        }
+  // ─────────────────────────────────────────
+  // CLEAR ALL
+  // ─────────────────────────────────────────
+  async clearAll() {
+    for (const workerKey of Object.keys(this.workers)) {
+      await new Promise((res, rej) => {
+        const tx = this.db.transaction([workerKey], 'readwrite');
+        const req = tx.objectStore(workerKey).clear();
+        req.onsuccess = () => res();
+        req.onerror = () => rej(req.error);
+      });
+      this.workers[workerKey].count = 0;
+    }
+    this.totalSize = 0;
+    this.opCount++;
+    return { ok: true, msg: 'All workers cleared' };
+  },
 
-        // Système Long-Press
-        function startLongPress(confId) {
-            currentConfidenceId = confId;
-            longPressTimer = setTimeout(() => {
-                showReactionsModal(confId);
-            }, 500); // 500ms = long press
-        }
+  // ─────────────────────────────────────────
+  // GET STATS
+  // ─────────────────────────────────────────
+  getStats() {
+    return {
+      uptime: Math.floor((Date.now() - this.startTime) / 1000),
+      operations: this.opCount,
+      totalSize: this.totalSize,
+      workers: Object.entries(this.workers).map(([k, v]) => ({
+        key: k,
+        name: v.name,
+        count: v.count
+      }))
+    };
+  }
+};
 
-        function cancelLongPress() {
-            if (longPressTimer) {
-                clearTimeout(longPressTimer);
-                longPressTimer = null;
-            }
-        }
+// ═══════════════════════════════════════════════════════════════
+// UI & OUTPUT
+// ═══════════════════════════════════════════════════════════════
 
-        function showReactionsModal(confId) {
-            currentConfidenceId = confId;
-            document.getElementById('reactions-modal').classList.add('show');
-        }
+function out(data) {
+  document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+  updateUI();
+}
 
-        function hideReactionsModal() {
-            document.getElementById('reactions-modal').classList.remove('show');
-            currentConfidenceId = null;
-        }
+function updateUI() {
+  const stats = LDSS.getStats();
+  
+  // Stats
+  document.getElementById('s-ops').textContent = stats.operations;
+  document.getElementById('s-size').textContent = Math.round(stats.totalSize / 1024);
+  document.getElementById('s-uptime').textContent = stats.uptime + 's';
+  
+  // Workers
+  const workersEl = document.getElementById('workers');
+  workersEl.innerHTML = stats.workers.map(w => `
+    <div class="worker">
+      <div class="worker-name">${w.name}</div>
+      <div class="worker-count">${w.count}</div>
+    </div>
+  `).join('');
+  
+  // Total
+  LDSS.list().then(r => {
+    document.getElementById('s-total').textContent = r.total;
+  });
+}
 
-        async function selectReactionFromModal(reactionId) {
-            if (currentConfidenceId) {
-                await react(currentConfidenceId, reactionId);
-                hideReactionsModal();
-            }
-        }
+// ═══════════════════════════════════════════════════════════════
+// URL ROUTER
+// ═══════════════════════════════════════════════════════════════
 
-        async function deleteConfidence(id) {
-            if (!confirm('Supprimer cette confidence ?')) return;
-            
-            try {
-                await fetch(`/api/confidences/${id}`, {
-                    method: 'DELETE',
-                    headers: { 'X-User-Id': currentUserId }
-                });
-                loadConfidences();
-            } catch (error) {
-                console.error('Error:', error);
-            }
-        }
+async function route() {
+  const p = new URLSearchParams(location.search);
+  const action = p.get('action');
+  const col = p.get('collection');
+  const dataStr = p.get('data');
+  const id = p.get('id');
+  
+  if (!action) {
+    out({ 
+      status: 'ready', 
+      version: 'LDSS v4',
+      workers: Object.keys(LDSS.workers),
+      actions: ['write', 'write_batch', 'read', 'read_id', 'count', 'list', 'delete', 'clear', 'clear_all', 'stats']
+    });
+    return;
+  }
+  
+  try {
+    let r;
+    switch(action) {
+      case 'write':
+        r = await LDSS.write(col, JSON.parse(decodeURIComponent(dataStr)));
+        break;
+      case 'write_batch':
+        const batch = JSON.parse(decodeURIComponent(dataStr));
+        r = await LDSS.writeBatch(col, batch.batch || batch);
+        break;
+      case 'read':
+        r = await LDSS.read(col);
+        break;
+      case 'read_id':
+        r = await LDSS.readById(col, id);
+        break;
+      case 'count':
+        r = await LDSS.count(col);
+        break;
+      case 'list':
+        r = await LDSS.list();
+        break;
+      case 'delete':
+        r = await LDSS.delete(col, id);
+        break;
+      case 'clear':
+        r = await LDSS.clearCollection(col);
+        break;
+      case 'clear_all':
+        r = await LDSS.clearAll();
+        break;
+      case 'stats':
+        r = LDSS.getStats();
+        break;
+      default:
+        r = { ok: false, error: 'Unknown action' };
+    }
+    out(r);
+  } catch(e) {
+    out({ ok: false, error: e.message });
+  }
+}
 
-        function editConfidence(id) {
-            window.location.href = `/post.html?id=${id}&edit=true`;
-        }
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
 
-        function showModal(id) {
-            document.getElementById(id).classList.remove('hidden');
-        }
-
-        function hideModal(id) {
-            document.getElementById(id).classList.add('hidden');
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function timeAgo(timestamp) {
-            const seconds = Math.floor((Date.now() - timestamp) / 1000);
-            if (seconds < 60) return 'À l\'instant';
-            if (seconds < 3600) return `Il y a ${Math.floor(seconds / 60)}min`;
-            if (seconds < 86400) return `Il y a ${Math.floor(seconds / 3600)}h`;
-            return `Il y a ${Math.floor(seconds / 86400)}j`;
-        }
-
-        // Donation popup
-        function startDonationTimer() {
-            setTimeout(() => {
-                document.getElementById('donation-popup').classList.remove('hidden');
-                setTimeout(hideDonationPopup, 5000);
-            }, 15 * 60 * 1000); // 15 min
-        }
-
-        function hideDonationPopup() {
-            document.getElementById('donation-popup').classList.add('hidden');
-            startDonationTimer(); // Relancer
-        }
-    </script>
-
+(async () => {
+  try {
+    await LDSS.init();
+    document.getElementById('status').textContent = 'Online';
+    document.getElementById('dot').style.background = '#22c55e';
+    
+    // Update uptime every second
+    setInterval(() => {
+      document.getElementById('s-uptime').textContent = 
+        Math.floor((Date.now() - LDSS.startTime) / 1000) + 's';
+    }, 1000);
+    
+    await route();
+  } catch(e) {
+    document.getElementById('status').textContent = 'Error: ' + e.message;
+    document.getElementById('dot').style.background = '#ef4444';
+  }
+})();
+</script>
 </body>
 </html>
