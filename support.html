@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soutenir Confidence Book</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-purple-50 to-indigo-100 min-h-screen">
+    
+    <div class="container mx-auto max-w-4xl px-4 py-12">
+        
+        <div class="text-center mb-12">
+            <div class="text-6xl mb-4">💙</div>
+            <h1 class="text-4xl font-bold text-gray-800 mb-4">Soutenez Confidence Book</h1>
+            <p class="text-xl text-gray-600">Aidez-nous à rester gratuit, sans publicité et accessible à tous</p>
+        </div>
+        
+        <!-- Mission -->
+        <div class="bg-white rounded-2xl shadow-xl p-8 mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Notre Mission</h2>
+            <p class="text-gray-700 leading-relaxed mb-4">
+                Confidence Book est un refuge émotionnel gratuit et sans publicité. Nous croyons que personne ne devrait rester seul face à son histoire, et que l'accès au soutien émotionnel ne devrait jamais dépendre de moyens financiers.
+            </p>
+            <p class="text-gray-700 leading-relaxed">
+                Votre soutien nous permet de maintenir cette plateforme accessible, sécurisée et bienveillante pour tous.
+            </p>
+        </div>
+        
+        <!-- Pourquoi soutenir -->
+        <div class="bg-white rounded-2xl shadow-xl p-8 mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">💡 Pourquoi votre soutien est crucial</h2>
+            <div class="grid md:grid-cols-2 gap-4">
+                <div class="flex items-start space-x-3">
+                    <span class="text-2xl">🛡️</span>
+                    <div>
+                        <p class="font-semibold text-gray-800">Gratuité totale</p>
+                        <p class="text-sm text-gray-600">Aucun paywall, accessible à tous</p>
+                    </div>
+                </div>
+                <div class="flex items-start space-x-3">
+                    <span class="text-2xl">🚫</span>
+                    <div>
+                        <p class="font-semibold text-gray-800">Sans publicité</p>
+                        <p class="text-sm text-gray-600">Pas de tracking ni de vente de données</p>
+                    </div>
+                </div>
+                <div class="flex items-start space-x-3">
+                    <span class="text-2xl">🤖</span>
+                    <div>
+                        <p class="font-semibold text-gray-800">Modération IA</p>
+                        <p class="text-sm text-gray-600">Protection contre contenus toxiques</p>
+                    </div>
+                </div>
+                <div class="flex items-start space-x-3">
+                    <span class="text-2xl">🌍</span>
+                    <div>
+                        <p class="font-semibold text-gray-800">Disponibilité 24/7</p>
+                        <p class="text-sm text-gray-600">Serveurs fiables et sécurisés</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Donation -->
+        <div class="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl shadow-2xl p-8 text-white mb-8">
+            <h2 class="text-3xl font-bold mb-4">💳 Faire un don</h2>
+            <p class="mb-6 text-purple-100">Chaque contribution, petite ou grande, fait la différence.</p>
+            
+            <div class="bg-white bg-opacity-20 rounded-xl p-6 mb-6">
+                <p class="font-semibold mb-2">Mobile Money / Wave / Moov Money</p>
+                <p class="text-2xl font-bold">+229 69 05 62 83</p>
+            </div>
+            
+            <a href="https://wa.me/22969056283?text=Bonjour%2C%20je%20souhaite%20faire%20un%20don%20pour%20Confidence%20Book" 
+               target="_blank"
+               class="inline-flex items-center space-x-2 bg-white text-purple-600 px-8 py-4 rounded-xl font-bold text-lg hover:shadow-xl transition">
+                <span>💬</span>
+                <span>Faire un don via WhatsApp</span>
+            </a>
+        </div>
+        
+        <!-- Autres moyens -->
+        <div class="grid md:grid-cols-2 gap-6 mb-8">
+            <div class="bg-white rounded-2xl shadow-xl p-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-3">📢 Partager</h3>
+                <p class="text-gray-700 mb-4">Parlez de Confidence Book autour de vous. Chaque personne qui découvre cette plateforme peut y trouver du réconfort.</p>
+                <button onclick="share()" class="bg-purple-100 text-purple-700 px-4 py-2 rounded-lg font-medium hover:bg-purple-200 transition">
+                    Partager →
+                </button>
+            </div>
+            
+            <div class="bg-white rounded-2xl shadow-xl p-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-3">✨ Contribuer</h3>
+                <p class="text-gray-700 mb-4">Développeur ? Designer ? Traducteur ? Rejoignez-nous pour améliorer la plateforme.</p>
+                <a href="mailto:nexusstudio100@gmail.com" class="inline-block bg-purple-100 text-purple-700 px-4 py-2 rounded-lg font-medium hover:bg-purple-200 transition">
+                    Nous contacter →
+                </a>
+            </div>
+        </div>
+        
+        <!-- Transparence -->
+        <div class="bg-white rounded-2xl shadow-xl p-8 mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">🔍 Transparence</h2>
+            <p class="text-gray-700 leading-relaxed">
+                Confidence Book est géré de manière indépendante par Anzize Daouda. 100% des dons sont utilisés pour maintenir et améliorer la plateforme : hébergement, modération IA, développement de nouvelles fonctionnalités.
+            </p>
+        </div>
+        
+        <!-- CTA Retour -->
+        <div class="text-center">
+            <a href="/feed" class="inline-block bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:shadow-xl transition">
+                ← Retour à Confidence Book
+            </a>
+        </div>
+        
+    </div>
+    
+    <script>
+        function share() {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Confidence Book',
+                    text: 'Un refuge émotionnel anonyme où personne ne reste seul face à son histoire.',
+                    url: window.location.origin
+                });
+            } else {
+                alert('Partagez ce lien : ' + window.location.origin);
+            }
+        }
+    </script>
+    
+</body>
+</html>
