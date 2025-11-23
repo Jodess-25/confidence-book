@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentification - Confidence Book</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #667eea; border-radius: 4px; }
+        
+        .pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-purple-50 to-indigo-100 min-h-screen flex items-center justify-center p-4">
+    
+    <div id="create-view" class="hidden max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+        <div class="text-center mb-6">
+            <div class="text-5xl mb-4">🎉</div>
+            <h1 class="text-2xl font-bold text-gray-800">Création de votre espace</h1>
+            <p class="text-gray-600 mt-2">Génération de votre identifiant anonyme...</p>
+        </div>
+        
+        <div class="flex justify-center mb-6">
+            <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600"></div>
+        </div>
+        
+        <p class="text-sm text-gray-500 text-center">Veuillez patienter quelques secondes...</p>
+    </div>
+    
+    <div id="success-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8">
+            <div class="text-center mb-6">
+                <div class="text-6xl mb-4">✨</div>
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">Votre espace est créé !</h2>
+                <p class="text-gray-600">Conservez précieusement votre ID anonyme</p>
+            </div>
+            
+            <div class="bg-gradient-to-r from-purple-100 to-indigo-100 rounded-xl p-6 mb-6">
+                <p class="text-sm font-medium text-gray-700 mb-2">Votre ID anonyme :</p>
+                <div class="flex items-center justify-between bg-white rounded-lg p-4">
+                    <code id="user-id-display" class="text-2xl font-bold text-purple-600"></code>
+                    <button onclick="copyID()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition text-sm font-medium">
+                        📋 Copier
+                    </button>
+                </div>
+            </div>
+            
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+                <p class="text-sm font-medium text-yellow-800 mb-2">⚠️ IMPORTANT</p>
+                <ul class="text-xs text-yellow-700 space-y-1">
+                    <li>• Copiez cet ID maintenant</li>
+                    <li>• Conservez-le en lieu sûr (notes, gestionnaire de mots de passe)</li>
+                    <li>• Il vous permet de retrouver votre espace sur tout appareil</li>
+                    <li>• Si vous le perdez, vous perdez l'accès définitivement</li>
+                </ul>
+            </div>
+            
+            <div class="space-y-3">
+                <button onclick="confirmAndContinue()" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold py-3 rounded-xl hover:shadow-lg transition">
+                    ✅ J'ai sauvegardé mon ID
+                </button>
+                <button onclick="copyID()" class="w-full bg-gray-100 text-gray-700 font-medium py-3 rounded-xl hover:bg-gray-200 transition">
+                    📋 Copier à nouveau
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="login-view" class="hidden max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+        <div class="text-center mb-6">
+            <div class="text-5xl mb-4">🔐</div>
+            <h1 class="text-2xl font-bold text-gray-800">Connexion</h1>
+            <p class="text-gray-600 mt-2">Entrez votre ID anonyme</p>
+        </div>
+        
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Votre ID (ex: CB_abc12345)</label>
+                <input type="text" 
+                       id="login-id-input" 
+                       placeholder="CB_xxxxxxxx"
+                       class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-purple-600 focus:outline-none text-lg font-mono">
+            </div>
+            
+            <button onclick="loginWithID()" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold py-3 rounded-xl hover:shadow-lg transition">
+                Se connecter
+            </button>
+            
+            <button onclick="window.location.href='/'" class="w-full bg-gray-100 text-gray-700 font-medium py-2 rounded-xl hover:bg-gray-200 transition">
+                ← Retour
+            </button>
+        </div>
+        
+        <p id="login-error" class="hidden mt-4 text-red-600 text-sm text-center"></p>
+    </div>
+    
+    <script>
+        let currentUserId = null;
+        
+        // Détecter mode (create ou login)
+        const urlParams = new URLSearchParams(window.location.search);
+        const mode = urlParams.get('mode') || 'create';
+        
+        if (mode === 'create') {
+            document.getElementById('create-view').classList.remove('hidden');
+            createAccount();
+        } else {
+            document.getElementById('login-view').classList.remove('hidden');
+        }
+        
+        async function createAccount() {
+            try {
+                console.log('📡 Creating anonymous account...');
+                
+                const response = await fetch('/api/auth/anonymous', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                console.log('✅ Account created:', result);
+                
+                if (result.success) {
+                    currentUserId = result.userId;
+                    showSuccessModal(result.userId);
+                } else {
+                    alert('Erreur lors de la création du compte');
+                    window.location.href = '/';
+                }
+            } catch (error) {
+                console.error('❌ Error:', error);
+                alert('Erreur de connexion');
+                window.location.href = '/';
+            }
+        }
+        
+        function showSuccessModal(userId) {
+            document.getElementById('create-view').classList.add('hidden');
+            document.getElementById('success-modal').classList.remove('hidden');
+            document.getElementById('user-id-display').textContent = userId;
+        }
+        
+        function copyID() {
+            const userId = document.getElementById('user-id-display').textContent;
+            navigator.clipboard.writeText(userId);
+            
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = '✅ Copié !';
+            btn.classList.add('bg-green-600');
+            btn.classList.remove('bg-purple-600');
+            
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.classList.remove('bg-green-600');
+                btn.classList.add('bg-purple-600');
+            }, 2000);
+        }
+        
+        function confirmAndContinue() {
+            localStorage.setItem('user_id', currentUserId);
+            window.location.href = '/feed';
+        }
+        
+        async function loginWithID() {
+            const userId = document.getElementById('login-id-input').value.trim();
+            
+            if (!userId || !userId.startsWith('CB_')) {
+                showError('Format d\'ID invalide. Doit commencer par CB_');
+                return;
+            }
+            
+            try {
+                console.log('📡 Verifying ID...');
+                
+                const response = await fetch('/api/auth/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId })
+                });
+                
+                const result = await response.json();
+                console.log('✅ Verification result:', result);
+                
+                if (result.success && result.exists) {
+                    localStorage.setItem('user_id', userId);
+                    window.location.href = '/feed';
+                } else {
+                    showError('ID introuvable. Vérifiez votre saisie.');
+                }
+            } catch (error) {
+                console.error('❌ Error:', error);
+                showError('Erreur de connexion');
+            }
+        }
+        
+        function showError(message) {
+            const errorEl = document.getElementById('login-error');
+            errorEl.textContent = message;
+            errorEl.classList.remove('hidden');
+        }
+        
+        // Enter key pour login
+        document.getElementById('login-id-input')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                loginWithID();
+            }
+        });
+    </script>
+    
+</body>
+</html>
