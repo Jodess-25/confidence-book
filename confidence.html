@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confidence - Confidence Book</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #667eea; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    
+    <header class="bg-white border-b sticky top-0 z-20 shadow-sm">
+        <div class="container mx-auto max-w-4xl px-4 py-3 flex items-center justify-between">
+            <button onclick="window.history.back()" class="text-gray-600 hover:text-gray-900">
+                ← Retour
+            </button>
+            <h1 class="text-xl font-bold text-purple-600">Confidence</h1>
+            <a href="/feed" class="text-gray-600 hover:text-gray-900">Accueil</a>
+        </div>
+    </header>
+    
+    <div class="container mx-auto max-w-4xl px-4 py-8">
+        
+        <div id="confidence-detail" class="space-y-6">
+            <div class="text-center text-gray-500 py-12">
+                <p>Chargement...</p>
+            </div>
+        </div>
+        
+    </div>
+    
+    <script>
+        const currentUserId = localStorage.getItem('user_id');
+        const confidenceId = window.location.pathname.split('/').pop();
+        
+        const CHAPTERS = [
+            { id: 'ruptures', emoji: '💔', name: 'Ruptures & Relations' },
+            { id: 'isolement', emoji: '😔', name: 'Isolement & Tristesse' },
+            { id: 'traumas', emoji: '🔥', name: 'Traumas & Expériences' },
+            { id: 'stress', emoji: '🧠', name: 'Stress & Santé Mentale' },
+            { id: 'spiritualite', emoji: '🪞', name: 'Spiritualité & Quête' },
+            { id: 'espoir', emoji: '🤝', name: 'Espoir & Reconstruction' }
+        ];
+        
+        const REACTIONS = [
+            { id: 'soutiens', emoji: '🤝', label: 'Je te soutiens' },
+            { id: 'espoir', emoji: '🔥', label: 'Garde espoir' },
+            { id: 'compatis', emoji: '🤜🤛', label: 'Je compatis' },
+            { id: 'pas_seul', emoji: '🫂', label: 'T\'es pas seul' },
+            { id: 'courage', emoji: '🙌', label: 'Courage' },
+            { id: 'triste', emoji: '💔', label: 'C\'est triste' }
+        ];
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            loadConfidence();
+        });
+        
+        async function loadConfidence() {
+            try {
+                const response = await fetch(`/api/confidences/${confidenceId}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    renderConfidence(result.data);
+                } else {
+                    document.getElementById('confidence-detail').innerHTML = '<div class="text-center text-red-600 py-12"><p>Confidence introuvable</p></div>';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        function renderConfidence(conf) {
+            const chapter = CHAPTERS.find(ch => ch.id === conf.emotion) || CHAPTERS[0];
+            const isOwner = conf.user_id === currentUserId;
+            
+            const html = `
+                <article class="bg-white rounded-2xl shadow-sm border overflow-hidden">
+                    <div class="p-6 border-b">
+                        <div class="flex items-center space-x-3 mb-4">
+                            <div class="w-14 h-14 rounded-full bg-purple-100 flex items-center justify-center">
+                                <span class="text-3xl">${chapter.emoji}</span>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-gray-800">${chapter.name}</p>
+                                <p class="text-sm text-gray-500">${new Date(conf.created_at).toLocaleDateString('fr-FR')}</p>
+                            </div>
+                        </div>
+                        
+                        <p class="text-xl leading-relaxed text-gray-800">${escapeHtml(conf.content)}</p>
+                    </div>
+                    
+                    <div class="p-6 border-b bg-gray-50">
+                        <p class="text-sm font-medium text-gray-700 mb-3">Réactions :</p>
+                        <div class="flex flex-wrap gap-2">
+                            ${REACTIONS.map(r => `
+                                <button onclick="react('${conf.id}', '${r.id}')" class="px-4 py-2 rounded-full text-sm border border-gray-300 hover:border-purple-600 hover:bg-purple-50 transition">
+                                    ${r.emoji} ${r.label} (${conf.reactions[r.id] || 0})
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="p-6">
+                        <h2 class="text-lg font-bold text-gray-800 mb-4">💬 Réponses bienveillantes (${conf.responses?.length || 0})</h2>
+                        
+                        <div class="space-y-4 mb-6" id="responses-list">
+                            ${conf.responses?.length > 0 ? conf.responses.map(r => `
+                                <div class="flex space-x-3">
+                                    <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                                        <span class="text-xl">${r.avatar}</span>
+                                    </div>
+                                    <div class="flex-1 bg-gray-50 rounded-2xl p-4">
+                                        <p class="text-gray-800">${escapeHtml(r.content)}</p>
+                                        <p class="text-xs text-gray-400 mt-2">${new Date(r.created_at).toLocaleString('fr-FR')}</p>
+                                    </div>
+                                </div>
+                            `).join('') : '<p class="text-gray-500 text-center py-6">Aucune réponse pour le moment. Soyez le premier à répondre.</p>'}
+                        </div>
+                        
+                        <div class="flex space-x-3">
+                            <div class="w-10 h-10 rounded-full bg-gray-200 flex-shrink-0"></div>
+                            <textarea id="response-input" rows="3" placeholder="Répondre avec bienveillance..." class="flex-1 p-3 border-2 border-gray-300 rounded-xl focus:border-purple-600 focus:outline-none resize-none"></textarea>
+                            <button onclick="addResponse()" class="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-medium rounded-xl hover:shadow-lg transition">
+                                Envoyer
+                            </button>
+                        </div>
+                    </div>
+                </article>
+            `;
+            
+            document.getElementById('confidence-detail').innerHTML = html;
+        }
+        
+        async function react(confidenceId, reactionType) {
+            try {
+                await fetch('/api/reactions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-Id': currentUserId
+                    },
+                    body: JSON.stringify({ confidenceId, reactionType })
+                });
+                
+                await loadConfidence();
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        async function addResponse() {
+            const content = document.getElementById('response-input').value.trim();
+            
+            if (!content || content.length < 5) {
+                alert('Votre réponse doit contenir au moins 5 caractères');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/responses', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-Id': currentUserId
+                    },
+                    body: JSON.stringify({
+                        confidenceId,
+                        content
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('response-input').value = '';
+                    await loadConfidence();
+                } else {
+                    alert(result.message || 'Erreur lors de l\'envoi');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Erreur de connexion');
+            }
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+    
+</body>
+</html>
