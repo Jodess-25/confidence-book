@@ -1,5 +1,4 @@
-// server.js - BACKEND CONFIDENCE BOOK V2.0
-// 5 IA en fallback + Règles strictes
+// server.js - BACKEND SERVICE CONFIDENCE BOOK v2.0
 
 import { createClient } from '@libsql/client';
 
@@ -9,18 +8,18 @@ export class ConfidenceBookService {
     this.aiEndpoint = 'https://api.groq.com/openai/v1/chat/completions';
     this.aiApiKey = process.env.GROQ_API_KEY;
     
-    // 5 modèles en fallback (ordre de préférence)
+    // 5 modèles en fallback
     this.groqModels = [
       'llama-3.3-70b-versatile',
       'llama-3.1-8b-instant',
       'gemma2-9b-it',
       'mixtral-8x7b-32768',
-      'llama3-groq-70b-8192-tool-use-preview'
+      'llama3-70b-8192'
     ];
   }
 
   async init() {
-    console.log('✅ [BACKEND] Initializing Confidence Book Service...');
+    console.log('✅ [BACKEND] Initializing Confidence Book Service v2.0...');
     
     this.db = createClient({
       url: process.env.DATABASE_URL || 'file:local.db',
@@ -57,7 +56,7 @@ export class ConfidenceBookService {
       )
     `);
 
-    // Reactions (6 types)
+    // Reactions (6 nouvelles réactions)
     await this.db.execute(`
       CREATE TABLE IF NOT EXISTS reactions (
         id TEXT PRIMARY KEY,
@@ -84,7 +83,7 @@ export class ConfidenceBookService {
       )
     `);
 
-    // Response Reactions
+    // Responses Reactions
     await this.db.execute(`
       CREATE TABLE IF NOT EXISTS response_reactions (
         id TEXT PRIMARY KEY,
@@ -100,10 +99,10 @@ export class ConfidenceBookService {
     console.log('✅ [BACKEND] Tables created/verified');
   }
 
-  // ========== AUTHENTIFICATION ==========
+  // ========== AUTH ==========
   
   async createAnonymousUser() {
-    const userId = this.generateAnonymousID();
+    const userId = this.generateUserID();
     const now = Date.now();
     
     await this.db.execute({
@@ -113,100 +112,35 @@ export class ConfidenceBookService {
     
     console.log('[BACKEND] Created anonymous user:', userId);
     
-    return {
-      success: true,
-      userId
-    };
-  }
-
-  generateAnonymousID() {
-    const prefix = 'CB_';
-    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    let id = '';
-    
-    for (let i = 0; i < 8; i++) {
-      id += chars[Math.floor(Math.random() * chars.length)];
-    }
-    
-    return prefix + id;
+    return { success: true, userId };
   }
 
   async verifyUserID(userId) {
     const result = await this.db.execute({
-      sql: 'SELECT id FROM users WHERE id = ?',
-      args: [userId]
-    });
-    
-    if (result.rows.length > 0) {
-      // Update last active
-      await this.db.execute({
-        sql: 'UPDATE users SET last_active = ? WHERE id = ?',
-        args: [Date.now(), userId]
-      });
-      
-      return { success: true, exists: true };
-    }
-    
-    return { success: false, exists: false, message: 'ID introuvable' };
-  }
-
-  // ========== PROFIL ==========
-  
-  async getProfile(headers) {
-    const userId = headers['x-user-id'];
-    
-    if (!userId) {
-      return { success: false, message: 'User ID required' };
-    }
-
-    // Stats utilisateur
-    const confidencesResult = await this.db.execute({
-      sql: 'SELECT COUNT(*) as count FROM confidences WHERE user_id = ?',
-      args: [userId]
-    });
-
-    const reactionsResult = await this.db.execute({
-      sql: `SELECT COUNT(*) as count FROM reactions 
-            WHERE confidence_id IN (SELECT id FROM confidences WHERE user_id = ?)`,
-      args: [userId]
-    });
-
-    const responsesResult = await this.db.execute({
-      sql: `SELECT COUNT(*) as count FROM responses 
-            WHERE confidence_id IN (SELECT id FROM confidences WHERE user_id = ?)`,
-      args: [userId]
-    });
-
-    const userResult = await this.db.execute({
       sql: 'SELECT * FROM users WHERE id = ?',
       args: [userId]
     });
-
-    const settings = userResult.rows[0]?.settings ? JSON.parse(userResult.rows[0].settings) : {};
-
-    return {
-      success: true,
-      profile: {
-        userId,
-        confidences: Number(confidencesResult.rows[0].count),
-        reactions: Number(reactionsResult.rows[0].count),
-        responses: Number(responsesResult.rows[0].count),
-        joinedAt: userResult.rows[0]?.created_at,
-        settings
-      }
-    };
+    
+    if (result.rows.length === 0) {
+      return { success: false, message: 'ID introuvable' };
+    }
+    
+    // Update last active
+    await this.db.execute({
+      sql: 'UPDATE users SET last_active = ? WHERE id = ?',
+      args: [Date.now(), userId]
+    });
+    
+    return { success: true, user: result.rows[0] };
   }
 
-  async updateSettings(body, headers) {
-    const userId = headers['x-user-id'];
-    const { settings } = body;
-
-    await this.db.execute({
-      sql: 'UPDATE users SET settings = ? WHERE id = ?',
-      args: [JSON.stringify(settings), userId]
-    });
-
-    return { success: true };
+  generateUserID() {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let id = 'CB_';
+    for (let i = 0; i < 8; i++) {
+      id += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return id;
   }
 
   // ========== CONFIDENCES ==========
@@ -261,7 +195,6 @@ export class ConfidenceBookService {
         },
         responses: responsesResult.rows.map(r => ({
           id: r.id,
-          user_id: r.user_id,
           content: r.content,
           avatar: r.avatar,
           created_at: r.created_at
@@ -271,62 +204,49 @@ export class ConfidenceBookService {
     
     console.log(`[BACKEND] Retrieved ${confidences.length} confidences`);
     
-    return {
-      success: true,
-      data: confidences
-    };
+    return { success: true, data: confidences };
   }
 
   async getConfidence(confidenceId) {
     const result = await this.db.execute({
-      sql: `SELECT c.*,
-            (SELECT COUNT(*) FROM reactions WHERE confidence_id = c.id AND type = 'soutiens') as reactions_soutiens,
-            (SELECT COUNT(*) FROM reactions WHERE confidence_id = c.id AND type = 'espoir') as reactions_espoir,
-            (SELECT COUNT(*) FROM reactions WHERE confidence_id = c.id AND type = 'compatis') as reactions_compatis,
-            (SELECT COUNT(*) FROM reactions WHERE confidence_id = c.id AND type = 'pas_seul') as reactions_pas_seul,
-            (SELECT COUNT(*) FROM reactions WHERE confidence_id = c.id AND type = 'courage') as reactions_courage,
-            (SELECT COUNT(*) FROM reactions WHERE confidence_id = c.id AND type = 'triste') as reactions_triste
-            FROM confidences c WHERE c.id = ?`,
+      sql: 'SELECT * FROM confidences WHERE id = ?',
       args: [confidenceId]
     });
-
+    
     if (result.rows.length === 0) {
-      return { success: false, message: 'Confidence not found' };
+      return { success: false, message: 'Confidence introuvable' };
     }
-
-    const row = result.rows[0];
-
+    
+    const conf = result.rows[0];
+    
+    // Get reactions
+    const reactionsResult = await this.db.execute({
+      sql: 'SELECT type, COUNT(*) as count FROM reactions WHERE confidence_id = ? GROUP BY type',
+      args: [confidenceId]
+    });
+    
+    const reactions = {};
+    reactionsResult.rows.forEach(r => {
+      reactions[r.type] = Number(r.count);
+    });
+    
+    // Get responses
     const responsesResult = await this.db.execute({
       sql: 'SELECT * FROM responses WHERE confidence_id = ? ORDER BY created_at ASC',
       args: [confidenceId]
     });
-
-    const confidence = {
-      id: row.id,
-      user_id: row.user_id,
-      content: row.content,
-      emotion: row.emotion,
-      created_at: row.created_at,
-      reactions: {
-        soutiens: Number(row.reactions_soutiens),
-        espoir: Number(row.reactions_espoir),
-        compatis: Number(row.reactions_compatis),
-        pas_seul: Number(row.reactions_pas_seul),
-        courage: Number(row.reactions_courage),
-        triste: Number(row.reactions_triste)
-      },
-      responses: responsesResult.rows.map(r => ({
-        id: r.id,
-        user_id: r.user_id,
-        content: r.content,
-        avatar: r.avatar,
-        created_at: r.created_at
-      }))
-    };
-
+    
     return {
       success: true,
-      data: confidence
+      data: {
+        id: conf.id,
+        user_id: conf.user_id,
+        content: conf.content,
+        emotion: conf.emotion,
+        created_at: conf.created_at,
+        reactions,
+        responses: responsesResult.rows
+      }
     };
   }
 
@@ -463,7 +383,7 @@ export class ConfidenceBookService {
     return { success: true };
   }
 
-  // ========== RÉACTIONS ==========
+  // ========== REACTIONS ==========
   
   async addReaction(body, headers) {
     const userId = headers['x-user-id'];
@@ -512,7 +432,7 @@ export class ConfidenceBookService {
     }
   }
 
-  // ========== RÉPONSES ==========
+  // ========== RESPONSES ==========
   
   async addResponse(body, headers) {
     const userId = headers['x-user-id'];
@@ -538,7 +458,7 @@ export class ConfidenceBookService {
       };
     }
     
-    const avatars = ['🌙', '☀️', '🌿', '🧘', '🌸', '🦋', '🌊', '🍃', '⭐', '💫'];
+    const avatars = ['moon', 'sun', 'leaf', 'flower', 'butterfly', 'wave', 'sparkles', 'star'];
     const avatar = avatars[Math.floor(Math.random() * avatars.length)];
     
     const responseId = 'resp_' + Math.random().toString(36).substr(2, 9);
@@ -559,51 +479,45 @@ export class ConfidenceBookService {
     };
   }
 
-  async addResponseReaction(body, headers) {
+  // ========== USER PROFILE ==========
+  
+  async getUserProfile(headers) {
     const userId = headers['x-user-id'];
-    const { responseId, reactionType } = body;
     
-    if (!userId || !responseId || !reactionType) {
-      return { success: false, message: 'Missing required fields' };
+    if (!userId) {
+      return { success: false, message: 'User ID required' };
     }
     
-    try {
-      const existing = await this.db.execute({
-        sql: 'SELECT * FROM response_reactions WHERE response_id = ? AND user_id = ?',
-        args: [responseId, userId]
-      });
-      
-      if (existing.rows.length > 0 && existing.rows[0].type === reactionType) {
-        await this.db.execute({
-          sql: 'DELETE FROM response_reactions WHERE response_id = ? AND user_id = ?',
-          args: [responseId, userId]
-        });
-        
-        return { success: true, action: 'removed' };
+    const confidences = await this.db.execute({
+      sql: 'SELECT * FROM confidences WHERE user_id = ? ORDER BY created_at DESC',
+      args: [userId]
+    });
+    
+    const totalReactions = await this.db.execute({
+      sql: `SELECT COUNT(*) as count FROM reactions 
+            WHERE confidence_id IN (SELECT id FROM confidences WHERE user_id = ?)`,
+      args: [userId]
+    });
+    
+    const totalResponses = await this.db.execute({
+      sql: `SELECT COUNT(*) as count FROM responses 
+            WHERE confidence_id IN (SELECT id FROM confidences WHERE user_id = ?)`,
+      args: [userId]
+    });
+    
+    return {
+      success: true,
+      data: {
+        userId,
+        confidencesCount: confidences.rows.length,
+        reactionsCount: totalReactions.rows[0].count,
+        responsesCount: totalResponses.rows[0].count,
+        confidences: confidences.rows
       }
-      
-      await this.db.execute({
-        sql: 'DELETE FROM response_reactions WHERE response_id = ? AND user_id = ?',
-        args: [responseId, userId]
-      });
-      
-      const reactionId = 'rreact_' + Math.random().toString(36).substr(2, 9);
-      const now = Date.now();
-      
-      await this.db.execute({
-        sql: 'INSERT INTO response_reactions (id, response_id, user_id, type, created_at) VALUES (?, ?, ?, ?, ?)',
-        args: [reactionId, responseId, userId, reactionType, now]
-      });
-      
-      return { success: true, action: 'added' };
-      
-    } catch (error) {
-      console.error('[BACKEND] Response reaction error:', error);
-      return { success: false, message: 'Database error' };
-    }
+    };
   }
 
-  // ========== MODÉRATION IA (5 MODÈLES) ==========
+  // ========== MODERATION IA ==========
   
   async moderateContent(content, type) {
     if (!this.aiApiKey) {
@@ -637,7 +551,7 @@ export class ConfidenceBookService {
             messages: [
               { 
                 role: 'system', 
-                content: 'Tu es un modérateur bienveillant pour Confidence Book. Réponds UNIQUEMENT par APPROVED ou REJECTED: raison ou APPROVED WARNING: message.' 
+                content: 'Tu es un modérateur bienveillant pour Confidence Book. Réponds UNIQUEMENT par APPROVED ou REJECTED: raison.' 
               },
               { 
                 role: 'user', 
@@ -645,9 +559,7 @@ export class ConfidenceBookService {
               }
             ],
             temperature: 0.2,
-            max_tokens: 200,
-            top_p: 1,
-            stream: false
+            max_tokens: 200
           })
         });
         
@@ -673,20 +585,13 @@ export class ConfidenceBookService {
         
         console.log(`[BACKEND] AI Response (${model}):`, aiResponse);
         
-        if (aiResponse.startsWith('APPROVED WARNING')) {
-          const warningText = aiResponse.replace('APPROVED WARNING:', '').trim();
+        if (aiResponse.startsWith('APPROVED')) {
+          const warningMatch = aiResponse.match(/WARNING: (.+)/);
           return {
             approved: true,
             score: 0.8,
-            warning: true,
-            message: warningText
-          };
-        } else if (aiResponse.startsWith('APPROVED')) {
-          return {
-            approved: true,
-            score: 0.9,
-            warning: false,
-            message: 'Contenu validé'
+            warning: !!warningMatch,
+            message: warningMatch ? warningMatch[1] : 'Contenu validé'
           };
         } else if (aiResponse.startsWith('REJECTED')) {
           const reason = aiResponse.replace('REJECTED:', '').trim();
@@ -740,11 +645,11 @@ MISSION: Déterminer si ce message respecte nos règles.
 - Pensées suicidaires (c'est un appel à l'aide légitime)
 - Récits de trauma, abus, deuil, rupture
 - Remise en question identitaire, spirituelle
-- Langage cru mais émotionnel ("ma vie est de la merde")
+- Langage cru mais émotionnel
 
 ⚠️ ACCEPTER AVEC WARNING:
-- Mentions explicites de suicide → Répondre: "APPROVED WARNING: Contenu sensible. Ajoutez ressources d'aide (3114 en France, 1-833-456-4566 au Canada, 0800 32 123 en Belgique)"
-- Colère intense mais non violente → "APPROVED WARNING: Rappel de bienveillance"
+- Mentions explicites de suicide → "APPROVED WARNING: Ajoutez ressources d'aide (3114, etc.)"
+- Colère intense mais non violente → "APPROVED WARNING: Rappeler la bienveillance"
 
 ❌ REJETER:
 - Violence explicite: "Je vais le tuer", plans pour blesser
@@ -755,17 +660,17 @@ MISSION: Déterminer si ce message respecte nos règles.
 - Infos personnelles: adresse, nom complet, téléphone
 
 ZONE GRISE (Accepter avec nuance):
-- Insultes ex: "Mon ex est un(e) con(ne)" → APPROVED (contexte émotionnel)
-- Fantasmes vengeance: "J'aimerais qu'il souffre" → APPROVED (pas de plan concret)
-- Critique religion: "Dieu n'existe pas" → APPROVED (questionnement légitime)
+- Insultes ex: "Mon ex est un(e) con(ne)" → APPROVED
+- Fantasmes vengeance: "J'aimerais qu'il souffre" → APPROVED
+- Critique religion: "Dieu n'existe pas" → APPROVED
 
 MESSAGE À ANALYSER:
 "${content}"
 
 RÉPONDS UNIQUEMENT PAR:
-- "APPROVED" si le message respecte les règles
-- "APPROVED WARNING: [message d'aide]" si sensible mais acceptable
-- "REJECTED: [raison courte et bienveillante]" si viole les règles
+- "APPROVED"
+- "APPROVED WARNING: [message]"
+- "REJECTED: [raison courte et bienveillante]"
 
 Réponse:`;
   }
@@ -774,24 +679,20 @@ Réponse:`;
     return `Tu es un modérateur pour Confidence Book. Analyse cette RÉPONSE à une confidence.
 
 ✅ ACCEPTER:
-- Empathie: "Je comprends ce que tu ressens"
-- Soutien: "Tu n'es pas seul(e)"
-- Conseils bienveillants: "As-tu pensé à..."
-- Partage d'expérience: "J'ai vécu quelque chose de similaire"
+- Empathie, soutien, conseils bienveillants
+- Partage d'expérience
 
 ❌ REJETER:
-- Jugement: "C'est de ta faute"
-- Minimisation: "C'est pas si grave"
-- Conseils dangereux: "Ne va pas voir de médecin"
-- Prosélytisme: "Seul Dieu peut t'aider"
-- Spam/publicité
+- Jugement, minimisation
+- Conseils dangereux
+- Prosélytisme, spam
 
-RÉPONSE À ANALYSER:
+RÉPONSE:
 "${content}"
 
 RÉPONDS PAR:
-- "APPROVED" si bienveillant
-- "REJECTED: [raison]" si inapproprié
+- "APPROVED"
+- "REJECTED: [raison]"
 
 Réponse:`;
   }
@@ -814,7 +715,6 @@ Réponse:`;
     }
     
     checks.services.ai = this.aiApiKey ? 'configured' : 'dev-mode';
-    checks.services.models = this.groqModels.length + ' models in fallback';
     
     return checks;
   }
