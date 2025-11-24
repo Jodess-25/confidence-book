@@ -1,11 +1,11 @@
-# 🌌 Confidence Book V2.0
+# 🌌 Confidence Book v2.0
 
 > **Votre refuge émotionnel anonyme**  
 > Personne ne doit rester seul face à son histoire.
 
-[![NEXUS AXION 4.1](https://img.shields.io/badge/Architecture-NEXUS%20AXION%204.1-blue)](https://github.com)
-[![Node.js](https://img.shields.io/badge/Node.js-18+-green)](https://nodejs.org)
-[![AI Fallback](https://img.shields.io/badge/AI%20Fallback-5%20Models-purple)](https://groq.com)
+[![NEXUS AXION 4.1](https://img.shields.io/badge/Architecture-NEXUS%20AXION%204.1-blue)]()
+[![Node.js](https://img.shields.io/badge/Node.js-18+-green)]()
+[![License](https://img.shields.io/badge/License-MIT-yellow)]()
 
 ---
 
@@ -14,43 +14,43 @@
 Confidence Book est une plateforme d'expression émotionnelle anonyme où chacun peut :
 - 💬 Partager ses expériences sans jugement
 - 🤝 Recevoir du soutien bienveillant
-- 🔒 Rester 100% anonyme (ID unique, pas de compte classique)
-- 🛡️ Être protégé par une modération IA (5 modèles en fallback)
+- 🔒 Rester 100% anonyme
+- 🛡️ Être protégé par modération IA
 
 ## 📁 Structure du Projet
 
 ```
 confidence-book/
-├── welcome.html           # Page d'accueil + règles
-├── auth.html              # Génération/Connexion ID anonyme
-├── feed.html              # Fil d'actualité principal
-├── confidence.html        # Page dédiée à une confidence
-├── profile.html           # Profil utilisateur
-├── settings.html          # Paramètres
-├── support.html           # Page soutien/donation
-├── api.js                 # API Gateway (NEXUS AXION 4.1)
-├── server.js              # Backend + 5 IA en fallback
-├── scripts/
-│   └── reset-db.js        # Script reset DB (déploiement uniquement)
-├── package.json
-├── .env.example
-├── .gitignore
-└── README.md
+├── index.html → welcome.html (redirect)
+├── welcome.html       # Page d'accueil + règles
+├── auth.html          # Génération/vérification ID
+├── feed.html          # Fil d'actualité
+├── confidence.html    # Page dédiée confidence
+├── profile.html       # Profil utilisateur
+├── settings.html      # Paramètres
+├── support.html       # Page de soutien/donation
+├── api.js             # API Gateway (point d'entrée)
+├── server.js          # Backend (logique + 5 IA)
+├── package.json       # Dépendances
+├── .env.example       # Template variables
+├── .gitignore         # Fichiers ignorés
+└── scripts/
+    └── reset-db.js    # Reset database (dev only)
 ```
 
-**Total : 7 pages HTML + 2 fichiers JS. C'est tout.**
+**Total : 10 fichiers HTML + 4 fichiers config**
 
 ---
 
-## 🚀 Déploiement Rapide (10 minutes)
+## 🚀 Déploiement Rapide (5 minutes)
 
 ### Prérequis
 
-1. **Compte Turso** (gratuit) : [turso.tech](https://turso.tech)
-2. **Compte Groq** (gratuit) : [console.groq.com](https://console.groq.com)
-3. **Compte Render** (gratuit) : [render.com](https://render.com)
+1. **Compte Render** (gratuit) : [render.com](https://render.com)
+2. **Compte Turso** (gratuit) : [turso.tech](https://turso.tech) 
+3. **Compte Groq** (gratuit) : [console.groq.com](https://console.groq.com)
 
-### Étape 1 : Créer la Database
+### Étape 1 : Créer la Base de Données
 
 ```bash
 # Installer Turso CLI
@@ -59,45 +59,43 @@ curl -sSfL https://get.tur.so/install.sh | bash
 # Créer la database
 turso db create confidence-book
 
-# Récupérer URL et Token
+# Récupérer URL et token
 turso db show confidence-book
 ```
 
-Copier :
-- URL: `libsql://confidence-book-xxxx.turso.io`
-- Token: `eyJhb...` (créer via "Create Token")
+### Étape 2 : Obtenir la Clé IA Groq
 
-### Étape 2 : Obtenir Clé Groq
-
-1. Aller sur [console.groq.com](https://console.groq.com)
-2. Créer compte gratuit
-3. API Keys → Create Key
-4. Copier : `gsk_...`
+1. Va sur [console.groq.com](https://console.groq.com)
+2. Créer un compte gratuit
+3. API Keys → Create → Copier la clé `gsk_...`
 
 ### Étape 3 : Déployer sur Render
 
-```bash
-# 1. Push sur GitHub
-git init
-git add .
-git commit -m "Confidence Book V2.0"
-git branch -M main
-git remote add origin https://github.com/TON-USERNAME/confidence-book.git
-git push -u origin main
+1. **Push sur GitHub** :
+   ```bash
+   git init
+   git add .
+   git commit -m "Confidence Book v2.0"
+   git branch -M main
+   git remote add origin https://github.com/YOUR-USERNAME/confidence-book.git
+   git push -u origin main
+   ```
 
-# 2. Sur Render:
-# - New → Web Service
-# - Connect GitHub repo
-# - Build Command: npm install
-# - Start Command: node api.js
+2. **Sur Render** :
+   - New → Web Service
+   - Connect GitHub repo
+   - Name: `confidence-book`
+   - Build Command: `npm install`
+   - Start Command: `node api.js`
 
-# 3. Variables d'environnement (Settings → Environment):
-DATABASE_URL=libsql://...
-DATABASE_AUTH_TOKEN=eyJhb...
-GROQ_API_KEY=gsk_...
+3. **Variables d'environnement** (Settings → Environment) :
+   ```
+   DATABASE_URL=libsql://confidence-book-xxxx.turso.io
+   DATABASE_AUTH_TOKEN=eyJhb...
+   GROQ_API_KEY=gsk_...
+   ```
 
-# 4. Deploy → Attendre 2 min → En ligne ! 🎉
-```
+4. **Deploy** → Attendre 2 minutes → ✅ En ligne !
 
 ---
 
@@ -107,11 +105,12 @@ GROQ_API_KEY=gsk_...
 # Installer dépendances
 npm install
 
-# Créer .env
+# Créer .env (copier .env.example)
 cp .env.example .env
-# Éditer .env avec vraies clés
 
-# Lancer serveur
+# Éditer .env avec tes vraies clés
+
+# Lancer le serveur
 npm start
 
 # Ouvrir http://localhost:3000
@@ -119,154 +118,140 @@ npm start
 
 ---
 
-## 🤖 Modération IA (5 Modèles en Fallback)
+## 🛡️ Système de Modération IA
 
-**Stratégie** : Essaie chaque modèle dans l'ordre jusqu'à ce qu'un fonctionne.
+### 5 Modèles en Fallback
 
 ```javascript
 const GROQ_MODELS = [
-  'llama-3.3-70b-versatile',      // 1. Meilleur (précis)
-  'llama-3.1-8b-instant',         // 2. Plus rapide
-  'gemma2-9b-it',                 // 3. Alternative
-  'mixtral-8x7b-32768',           // 4. Backup
-  'llama3-groq-70b-8192-tool-use-preview' // 5. Dernier recours
+  'llama-3.3-70b-versatile',   // Le meilleur
+  'llama-3.1-8b-instant',      // Le plus rapide
+  'gemma2-9b-it',              // Alternative
+  'mixtral-8x7b-32768',        // Backup
+  'llama3-70b-8192'            // Dernier recours
 ];
 ```
 
-Si les 5 échouent → **Fail-open** (approuver par défaut pour ne pas bloquer les utilisateurs).
+Si le 1er échoue → essaie le 2e → etc.  
+Si les 5 échouent → **fail-open** (approuve par défaut).
 
 ### Règles de Modération
 
-✅ **Toujours Accepter** :
-- Émotions (tristesse, colère, peur, solitude)
-- Pensées suicidaires (appel à l'aide) → + Message ressources
-- Récits de trauma (abus, deuil, rupture)
-- Remise en question (identité, spiritualité)
+**✅ TOUJOURS ACCEPTER** :
+- Tristesse, colère, peur, solitude
+- Pensées suicidaires (c'est un appel à l'aide)
+- Récits de trauma, abus, deuil
+- Remise en question identitaire
 
-❌ **Rejeter** :
+**⚠️ ACCEPTER AVEC WARNING** :
+- Mentions de suicide → Ajout ressources d'aide
+
+**❌ REJETER** :
 - Violence explicite envers autrui
 - Haine/discrimination
 - Spam/publicité
-- Contenu sexuel explicite (sauf mention trauma)
-- Hors-sujet total
-- Infos personnelles identifiables
+- Contenu sexuel explicite
+- Informations personnelles
 
 ---
 
 ## 🔐 Système d'ID Anonyme
 
-**Flow** :
-1. Utilisateur arrive → Génère ID (ex: `CB_8h3j9k2l`)
-2. Copie l'ID et le conserve
-3. Se "connecte" avec cet ID sur autre appareil
-4. Aucune donnée personnelle requise
+### Format
 
-**Sécurité** :
-- ID stocké dans `localStorage` du navigateur
-- Pour changer d'appareil : entrer manuellement l'ID
-- Si perdu : perte d'accès définitive (anonymat oblige)
-
----
-
-## 💙 Système de Réactions (6 Types)
-
-| Réaction | Emoji | Label |
-|----------|-------|-------|
-| `soutiens` | 🤝 | Je te soutiens |
-| `espoir` | 🔥 | Garde espoir |
-| `compatis` | 🤜🤛 | Je compatis |
-| `pas_seul` | 🫂 | T'es pas seul |
-| `courage` | 🙌 | Courage |
-| `triste` | 💔 | C'est triste |
-
-**Comportement** :
-- Clic = ajouter réaction
-- Re-clic = annuler (toggle)
-- Clic autre réaction = changer automatiquement
-
----
-
-## 💰 Monétisation (Éthique & Transparente)
-
-### Option B : Toast Donation (15min, 5s)
-
-```javascript
-// Toast apparaît toutes les 15 minutes
-// Dure 5 secondes
-// Coin bas-gauche, discret
+```
+CB_[8 caractères aléatoires]
+Exemple: CB_8h3j9k2l
 ```
 
-### Option C : Page Dédiée `/support`
+### Flow Utilisateur
 
-- Moyens de don : WhatsApp (+229 69 05 62 83)
-- Transparence totale sur l'utilisation des fonds
-- Autres moyens de soutien (partage, contribution)
+1. Arrive sur welcome.html
+2. Accepte les règles
+3. Crée son espace → Génère ID unique
+4. Copie l'ID pour le sauvegarder
+5. Se "connecte" avec cet ID sur autre appareil
+
+### Sécurité
+
+- Aucune donnée personnelle requise
+- ID stocké uniquement en localStorage côté client
+- Si perdu, accès impossible (anonymat oblige)
 
 ---
 
-## 🔧 Fonctionnalités Avancées
+## 💰 Monétisation Éthique
+
+### Toast Donation (Toutes les 15min, dure 5s)
+
+```javascript
+// Apparaît en bas à gauche
+// Non intrusif, facilement fermable
+// Lien vers page support.html
+```
+
+### Page Soutenir (`support.html`)
+
+- Explique la mission
+- Lien WhatsApp : +229 69 05 62 83
+- Email support : nexusstudio100@gmail.com
+- Options de contribution
+
+---
+
+## 🎨 Design & UX
 
 ### Custom Scrollbar
 
 ```css
 ::-webkit-scrollbar {
-  width: 8px;
+    width: 8px;
 }
-::-webkit-scrollbar-track {
-  background: var(--scroll-track);
-}
+
 ::-webkit-scrollbar-thumb {
-  background: var(--scroll-thumb);
-  border-radius: 4px;
+    background: #d1d5db;
+    border-radius: 4px;
 }
 ```
+
+### Lucide Icons
+
+Tous les icônes utilisent [Lucide](https://lucide.dev) (plus pro que les emojis).
 
 ### Dark Mode
 
-```javascript
-// Toggle dans settings.html
-// Sauvegardé dans localStorage
-// Appliquer via classes CSS (theme-light / theme-dark)
-```
+Toggle dans settings.html (persiste via localStorage).
 
-### Suppression Auto (3 mois)
+### 6 Réactions
 
-```javascript
-const expiresAt = now + (90 * 24 * 60 * 60 * 1000);
-// Confidences supprimées automatiquement après 90 jours
-```
+- Je te soutiens 🤝
+- Garde espoir 🔥
+- Je compatis 💜
+- T'es pas seul 🫂
+- Courage 🙌
+- Triste 💔
+
+*Appui long pour ouvrir modal réactions (style Facebook)*
 
 ---
 
-## 🛠️ Scripts de Maintenance
+## 🛠️ Commandes Utiles
 
-### Reset Database (Déploiement uniquement)
+### Développement
 
 ```bash
-npm run reset-db
-
-# ⚠️ WARNING: Supprime TOUTES les données
-# Demande double confirmation
-# Recrée les tables à vide
+npm start           # Lancer le serveur
+npm run dev         # Mode watch (auto-reload)
+npm run reset-db    # Reset database (DANGER!)
 ```
 
-**Usage** : Uniquement lors du déploiement initial ou en cas de corruption DB.
+### Déploiement
 
----
-
-## 📊 Footer (Toutes les Pages)
-
-```html
-Contact:
-- 📱 WhatsApp: +229 69 05 62 83
-- 📧 Email: nexusstudio100@gmail.com
-
-Aide d'urgence:
-- 🇫🇷 France: 3114
-- 🇨🇦 Canada: 1-833-456-4566
-- 🇧🇪 Belgique: 0800 32 123
-
-💙 Soutenir le projet: /support
+```bash
+git add .
+git commit -m "Update"
+git push origin main
+# → Render redéploie automatiquement
 ```
 
 ---
@@ -275,40 +260,29 @@ Aide d'urgence:
 
 ### Erreur 502 Bad Gateway
 
-**Cause** : Start Command incorrect
+**Solution** : Vérifier Start Command = `node api.html` (pas `app.html`!)
 
-**Solution** :
-- Render Settings → Start Command : `node api.js`
-- Vérifier `package.json` → `"main": "api.js"`
+### app.html redirect loop
+
+**Solution** : `api.js` redirige explicitement app.html → welcome.html
 
 ### Database Connection Error
 
-**Cause** : Variables manquantes
+**Solution** : Vérifier `DATABASE_URL` et `DATABASE_AUTH_TOKEN` dans Render
 
-**Solution** :
-- Vérifier `DATABASE_URL` et `DATABASE_AUTH_TOKEN` dans Render
-- Tester : `turso db shell confidence-book`
+### Modération ne fonctionne pas
 
-### Modération IA échoue
-
-**Cause** : Clé Groq invalide ou modèles décommissionnés
-
-**Solution** :
+**Solution** : 
 1. Vérifier `GROQ_API_KEY` dans Render
-2. Si modèles ne fonctionnent pas, la modération passe en mode "fail-open" (approuve par défaut)
-
-### Boutons ne répondent pas
-
-**Cause** : Erreur JavaScript
-
-**Solution** :
-1. Ouvrir DevTools (F12)
-2. Console → Vérifier erreurs rouges
-3. Network → Vérifier appels API
+2. Tester la clé :
+   ```bash
+   curl https://api.groq.com/openai/v1/models \
+     -H "Authorization: Bearer $GROQ_API_KEY"
+   ```
 
 ---
 
-## 📈 Monitoring
+## 📊 Monitoring
 
 ### Health Check
 
@@ -316,38 +290,22 @@ Aide d'urgence:
 curl https://ton-app.onrender.com/api/health
 ```
 
-Réponse :
-```json
-{
-  "timestamp": "2025-11-16T...",
-  "status": "ok",
-  "services": {
-    "database": "connected",
-    "ai": "configured",
-    "models": "5 models in fallback"
-  }
-}
-```
+### Logs Render
 
-### Logs (Render)
-
+Chercher :
 ```
-🔧 [API GATEWAY] Initializing backend...
-✅ [BACKEND] Database connected
-✅ [BACKEND] Tables created/verified
-[BACKEND] Calling Groq API (model: llama-3.3-70b-versatile)...
-[BACKEND] AI Response (llama-3.3-70b-versatile): APPROVED
+✅ [BACKEND] AI Response (llama-3.3-70b-versatile): APPROVED
 ```
 
 ---
 
 ## 🤝 Contribution
 
-Les contributions sont bienvenues ! Pour contribuer :
+Les contributions sont bienvenues !
 
 1. Fork le projet
 2. Créer une branche (`git checkout -b feature/amelioration`)
-3. Commit (`git commit -m 'Ajout fonctionnalité X'`)
+3. Commit (`git commit -m 'Ajout X'`)
 4. Push (`git push origin feature/amelioration`)
 5. Ouvrir une Pull Request
 
@@ -355,16 +313,17 @@ Les contributions sont bienvenues ! Pour contribuer :
 
 ## 📄 Licence
 
-MIT License - Libre d'utilisation pour projets personnels et commerciaux.
+MIT License - Libre d'utilisation.
 
 ---
 
 ## 🙏 Remerciements
 
-- **Architecture** : NEXUS AXION 4.1 by Anzize Daouda
-- **IA** : Groq (5 modèles LLaMA, Mixtral, Gemma)
+- **Architecture** : NEXUS AXION 4.1
+- **IA** : Groq (LLaMA 3.3)
 - **Database** : Turso (LibSQL)
-- **Design** : Tailwind CSS + Inter Font
+- **Icons** : Lucide
+- **Design** : Tailwind CSS
 
 ---
 
@@ -372,11 +331,11 @@ MIT License - Libre d'utilisation pour projets personnels et commerciaux.
 
 - **WhatsApp** : +229 69 05 62 83
 - **Email** : nexusstudio100@gmail.com
-- **Soutenir** : [https://ton-app.onrender.com/support](https://ton-app.onrender.com/support)
+- **Urgences** : 🇫🇷 3114 | 🇧🇪 0800 32 123 | 🇨🇦 1-833-456-4566
 
 ---
 
-**🌌 Personne ne doit rester seul face à son histoire.**
+**🌌 Construis l'impossible. Simplement.**
 
-> "L'anonymat n'est pas un masque pour fuir, c'est un outil de libération."  
-> - Anzize Daouda, Confidence Book V2.0
+> "Personne ne doit rester seul face à son histoire."  
+> — Confidence Book
