@@ -1,10 +1,8 @@
-// api.js - API GATEWAY CONFIDENCE BOOK v2.0
-// FIX: Route vers welcome.html par défaut (PAS app.html)
-
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { ConfidenceBookService } from './server.js';
+import fs from 'fs';
+import { BackendService } from './server.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,193 +10,502 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ========== MIDDLEWARE ==========
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static(__dirname));
 
+class SecurityLogger {
+  constructor() {
+    this.logs = [];
+    this.maxLogsInMemory = 1000;
+    this.rateLimits = new Map();
+    this.blockedIPs = new Set();
+    
+    if (!fs.existsSync('logs')) {
+      fs.mkdirSync('logs');
+    }
+  }
+  
+  log(level, type, data) {
+    const entry = {
+      timestamp: new Date().toISOString(),
+      level,
+      type,
+      ...data
+    };
+    
+    this.logs.push(entry);
+    if (this.logs.length > this.maxLogsInMemory) {
+      this.logs.shift();
+    }
+    
+    console.log(`[${level}] [${type}] ${JSON.stringify(data)}`);
+    this.writeToFile(level, entry);
+  }
+  
+  writeToFile(level, entry) {
+    const date = new Date().toISOString().split('T')[0];
+    const logLine = `[${entry.timestamp}] [${entry.level}] [${entry.type}] ${JSON.stringify(entry)}\n`;
+    
+    fs.appendFileSync(`logs/api-${date}.log`, logLine);
+    
+    if (level === 'SECURITY') {
+      fs.appendFileSync(`logs/security-${date}.log`, logLine);
+    }
+    
+    if (level === 'ERROR') {
+      fs.appendFileSync(`logs/errors-${date}.log`, logLine);
+    }
+  }
+  
+  info(type, data) { this.log('INFO', type, data); }
+  warn(type, data) { this.log('WARN', type, data); }
+  error(type, data) { this.log('ERROR', type, data); }
+  security(type, data) { this.log('SECURITY', type, data); }
+  
+  checkRateLimit(identifier, limit = 100, windowMs = 15 * 60 * 1000) {
+    const now = Date.now();
+    
+    if (!this.rateLimits.has(identifier)) {
+      this.rateLimits.set(identifier, []);
+    }
+    
+    const requests = this.rateLimits.get(identifier);
+    const validRequests = requests.filter(time => now - time < windowMs);
+    
+    if (validRequests.length >= limit) {
+      this.security('RATE_LIMIT_EXCEEDED', {
+        identifier,
+        requests: validRequests.length,
+        limit
+      });
+      return false;
+    }
+    
+    validRequests.push(now);
+    this.rateLimits.set(identifier, validRequests);
+    
+    if (validRequests.length >= limit * 0.8) {
+      this.warn('RATE_LIMIT_WARNING', {
+        identifier,
+        requests: validRequests.length,
+        limit
+      });
+    }
+    
+    return true;
+  }
+  
+  detectSQLInjection(input) {
+    const sqlPatterns = [
+      /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION)\b)/i,
+      /(--|\#|\/\*|\*\/)/,
+      /(\bOR\b.*=.*\bOR\b)/i,
+      /('|"|;|\)|\()/
+    ];
+    
+    for (const pattern of sqlPatterns) {
+      if (pattern.test(input)) return true;
+    }
+    return false;
+  }
+  
+  detectXSS(input) {
+    const xssPatterns = [
+      /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+      /javascript:/gi,
+      /on\w+\s*=\s*["'][^"']*["']/gi,
+      /<iframe/gi
+    ];
+    
+    for (const pattern of xssPatterns) {
+      if (pattern.test(input)) return true;
+    }
+    return false;
+  }
+  
+  validateRequest(req) {
+    const ip = req.ip || req.connection.remoteAddress;
+    
+    if (this.blockedIPs.has(ip)) {
+      this.security('BLOCKED_IP_ATTEMPT', { ip, endpoint: req.path });
+      return { valid: false, reason: 'IP blocked' };
+    }
+    
+    if (!this.checkRateLimit(ip, 100, 15 * 60 * 1000)) {
+      return { valid: false, reason: 'Rate limit exceeded' };
+    }
+    
+    if (req.body && JSON.stringify(req.body).length > 10 * 1024 * 1024) {
+      this.warn('LARGE_PAYLOAD', { ip, size: JSON.stringify(req.body).length });
+      return { valid: false, reason: 'Payload too large' };
+    }
+    
+    const checkObject = (obj) => {
+      for (const [key, value] of Object.entries(obj)) {
+        if (typeof value === 'string') {
+          if (this.detectSQLInjection(value)) {
+            this.security('SQL_INJECTION_ATTEMPT', { ip, field: key, value: value.substring(0, 100) });
+            return false;
+          }
+          if (this.detectXSS(value)) {
+            this.security('XSS_ATTEMPT', { ip, field: key, value: value.substring(0, 100) });
+            return false;
+          }
+        } else if (typeof value === 'object' && value !== null) {
+          if (!checkObject(value)) return false;
+        }
+      }
+      return true;
+    };
+    
+    if (req.body && !checkObject(req.body)) {
+      return { valid: false, reason: 'Malicious content detected' };
+    }
+    
+    return { valid: true };
+  }
+  
+  blockIP(ip, reason, durationMs = 24 * 60 * 60 * 1000) {
+    this.blockedIPs.add(ip);
+    this.security('IP_BLOCKED', { ip, reason, duration: durationMs });
+    
+    setTimeout(() => {
+      this.blockedIPs.delete(ip);
+      this.info('IP_UNBLOCKED', { ip });
+    }, durationMs);
+  }
+  
+  getStats() {
+    const last24h = Date.now() - 24 * 60 * 60 * 1000;
+    const recentLogs = this.logs.filter(l => new Date(l.timestamp) > last24h);
+    
+    return {
+      total: recentLogs.length,
+      byLevel: {
+        INFO: recentLogs.filter(l => l.level === 'INFO').length,
+        WARN: recentLogs.filter(l => l.level === 'WARN').length,
+        ERROR: recentLogs.filter(l => l.level === 'ERROR').length,
+        SECURITY: recentLogs.filter(l => l.level === 'SECURITY').length
+      },
+      byType: recentLogs.reduce((acc, log) => {
+        acc[log.type] = (acc[log.type] || 0) + 1;
+        return acc;
+      }, {}),
+      blockedIPs: Array.from(this.blockedIPs),
+      topIPs: [...this.rateLimits.entries()]
+        .map(([ip, requests]) => ({ ip, requests: requests.length }))
+        .sort((a, b) => b.requests - a.requests)
+        .slice(0, 10)
+    };
+  }
+  
+  getRecentLogs(limit = 100) {
+    return this.logs.slice(-limit).reverse();
+  }
+}
+
+const securityLogger = new SecurityLogger();
+
 app.use((req, res, next) => {
-  console.log(`📡 [API GATEWAY] ${req.method} ${req.path}`);
+  const startTime = Date.now();
+  const ip = req.ip || req.connection.remoteAddress;
+  const userId = req.headers['x-user-id'] || 'anonymous';
+  
+  const validation = securityLogger.validateRequest(req);
+  
+  if (!validation.valid) {
+    securityLogger.security('REQUEST_BLOCKED', {
+      ip,
+      userId,
+      method: req.method,
+      endpoint: req.path,
+      reason: validation.reason
+    });
+    
+    return res.status(403).json({
+      success: false,
+      message: 'Request blocked for security reasons'
+    });
+  }
+  
+  securityLogger.info('API_REQUEST', {
+    ip,
+    userId,
+    method: req.method,
+    endpoint: req.path,
+    userAgent: req.headers['user-agent']
+  });
+  
+  const originalSend = res.send;
+  res.send = function(data) {
+    const duration = Date.now() - startTime;
+    
+    securityLogger.info('API_RESPONSE', {
+      ip,
+      userId,
+      method: req.method,
+      endpoint: req.path,
+      statusCode: res.statusCode,
+      duration
+    });
+    
+    originalSend.call(this, data);
+  };
+  
   next();
 });
 
-// ========== BACKEND ==========
 let backend;
 
 async function initBackend() {
-  console.log('🔧 [API GATEWAY] Initializing backend...');
-  backend = new ConfidenceBookService();
-  await backend.init();
-  console.log('✅ [API GATEWAY] Backend ready');
+  securityLogger.info('SYSTEM', { message: 'Initializing backend service...' });
+  try {
+    backend = new BackendService();
+    await backend.init();
+    securityLogger.info('SYSTEM', { message: 'Backend service ready' });
+    
+    setInterval(() => {
+      backend.cleanExpiredConfidences();
+    }, 24 * 60 * 60 * 1000);
+  } catch (error) {
+    securityLogger.error('SYSTEM', { message: 'Backend init failed', error: error.message });
+    throw error;
+  }
 }
 
-// ========== FRONTEND ROUTES (FIX CRITIQUE) ==========
-
-// Route principale → welcome.html (PAS app.html!)
 app.get('/', (req, res) => {
-  console.log('🌐 [API GATEWAY] Serving welcome.html');
   res.sendFile(path.join(__dirname, 'welcome.html'));
 });
 
-// Bloquer explicitement app.html (au cas où)
-app.get('/app.html', (req, res) => {
-  console.log('⚠️ [API GATEWAY] Redirecting app.html → welcome.html');
-  res.redirect('/');
-});
-
-// ========== API ENDPOINTS ==========
-
-// Health
-app.get('/api/health', async (req, res) => {
+app.post('/api/auth/create', async (req, res) => {
   try {
-    const result = await backend.healthCheck();
+    const result = await backend.createUser(req.body.secretPhrase);
     res.json(result);
   } catch (error) {
-    console.error('❌ [API GATEWAY] Error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-// Auth
-app.post('/api/auth/anonymous', async (req, res) => {
-  try {
-    console.log('📡 [API GATEWAY] POST /api/auth/anonymous');
-    const result = await backend.createAnonymousUser();
-    console.log(`✅ [API GATEWAY] User created: ${result.userId}`);
-    res.json(result);
-  } catch (error) {
-    console.error('❌ [API GATEWAY] Error:', error);
+    securityLogger.error('API_ERROR', { endpoint: '/api/auth/create', error: error.message });
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
 app.post('/api/auth/verify', async (req, res) => {
   try {
-    console.log('📡 [API GATEWAY] POST /api/auth/verify');
-    const result = await backend.verifyUserID(req.body.userId);
+    const result = await backend.verifyUser(req.body.input);
     res.json(result);
   } catch (error) {
-    console.error('❌ [API GATEWAY] Error:', error);
+    securityLogger.error('API_ERROR', { endpoint: '/api/auth/verify', error: error.message });
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// Confidences
 app.get('/api/confidences', async (req, res) => {
   try {
-    const result = await backend.getConfidences(req.query);
-    console.log(`✅ [API GATEWAY] Returned ${result.data?.length || 0} confidences`);
+    const result = await backend.getConfidences(req.query.chapter, req.headers['x-user-id']);
     res.json(result);
   } catch (error) {
-    console.error('❌ [API GATEWAY] Error:', error);
+    securityLogger.error('API_ERROR', { endpoint: '/api/confidences', error: error.message });
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
 app.get('/api/confidences/:id', async (req, res) => {
   try {
-    const result = await backend.getConfidence(req.params.id);
+    const result = await backend.getConfidence(req.params.id, req.headers['x-user-id']);
     res.json(result);
   } catch (error) {
-    console.error('❌ [API GATEWAY] Error:', error);
+    securityLogger.error('API_ERROR', { endpoint: '/api/confidences/:id', error: error.message });
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
 app.post('/api/confidences', async (req, res) => {
   try {
-    console.log(`📝 [API GATEWAY] Creating confidence`);
     const result = await backend.createConfidence(req.body, req.headers);
     res.json(result);
   } catch (error) {
-    console.error('❌ [API GATEWAY] Error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-app.delete('/api/confidences/:id', async (req, res) => {
-  try {
-    console.log(`🗑️ [API GATEWAY] Deleting confidence ${req.params.id}`);
-    const result = await backend.deleteConfidence(req.params.id, req.headers);
-    res.json(result);
-  } catch (error) {
-    console.error('❌ [API GATEWAY] Error:', error);
+    securityLogger.error('API_ERROR', { endpoint: '/api/confidences', error: error.message });
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
 app.put('/api/confidences/:id', async (req, res) => {
   try {
-    console.log(`✏️ [API GATEWAY] Updating confidence ${req.params.id}`);
     const result = await backend.updateConfidence(req.params.id, req.body, req.headers);
     res.json(result);
   } catch (error) {
-    console.error('❌ [API GATEWAY] Error:', error);
+    securityLogger.error('API_ERROR', { endpoint: '/api/confidences/:id', error: error.message });
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// Reactions
+app.delete('/api/confidences/:id', async (req, res) => {
+  try {
+    const result = await backend.deleteConfidence(req.params.id, req.headers);
+    res.json(result);
+  } catch (error) {
+    securityLogger.error('API_ERROR', { endpoint: '/api/confidences/:id', error: error.message });
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 app.post('/api/reactions', async (req, res) => {
   try {
-    console.log(`💙 [API GATEWAY] Adding reaction`);
-    const result = await backend.addReaction(req.body, req.headers);
+    const result = await backend.toggleReaction(req.body, req.headers);
     res.json(result);
   } catch (error) {
-    console.error('❌ [API GATEWAY] Error:', error);
+    securityLogger.error('API_ERROR', { endpoint: '/api/reactions', error: error.message });
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// Responses
 app.post('/api/responses', async (req, res) => {
   try {
-    console.log(`💬 [API GATEWAY] Adding response`);
-    const result = await backend.addResponse(req.body, req.headers);
+    const result = await backend.createResponse(req.body, req.headers);
     res.json(result);
   } catch (error) {
-    console.error('❌ [API GATEWAY] Error:', error);
+    securityLogger.error('API_ERROR', { endpoint: '/api/responses', error: error.message });
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// Profile
+app.post('/api/response-reactions', async (req, res) => {
+  try {
+    const result = await backend.toggleResponseReaction(req.body, req.headers);
+    res.json(result);
+  } catch (error) {
+    securityLogger.error('API_ERROR', { endpoint: '/api/response-reactions', error: error.message });
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 app.get('/api/profile', async (req, res) => {
   try {
-    const result = await backend.getUserProfile(req.headers);
+    const result = await backend.getProfile(req.headers);
     res.json(result);
   } catch (error) {
-    console.error('❌ [API GATEWAY] Error:', error);
+    securityLogger.error('API_ERROR', { endpoint: '/api/profile', error: error.message });
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// ========== ERROR HANDLERS ==========
+app.put('/api/settings', async (req, res) => {
+  try {
+    const result = await backend.updateSettings(req.body, req.headers);
+    res.json(result);
+  } catch (error) {
+    securityLogger.error('API_ERROR', { endpoint: '/api/settings', error: error.message });
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.delete('/api/account', async (req, res) => {
+  try {
+    const result = await backend.deleteAccount(req.headers);
+    res.json(result);
+  } catch (error) {
+    securityLogger.error('API_ERROR', { endpoint: '/api/account', error: error.message });
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.get('/api/health', async (req, res) => {
+  try {
+    const result = await backend.healthCheck();
+    res.json(result);
+  } catch (error) {
+    securityLogger.error('API_ERROR', { endpoint: '/api/health', error: error.message });
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.get('/api/admin/logs', (req, res) => {
+  const adminKey = req.headers['x-admin-key'];
+  
+  if (adminKey !== process.env.ADMIN_KEY) {
+    securityLogger.security('UNAUTHORIZED_ADMIN_ACCESS', {
+      ip: req.ip,
+      endpoint: '/api/admin/logs'
+    });
+    return res.status(403).json({ success: false, message: 'Unauthorized' });
+  }
+  
+  const logs = securityLogger.getRecentLogs(500);
+  res.json({ success: true, logs });
+});
+
+app.get('/api/admin/stats', (req, res) => {
+  const adminKey = req.headers['x-admin-key'];
+  
+  if (adminKey !== process.env.ADMIN_KEY) {
+    securityLogger.security('UNAUTHORIZED_ADMIN_ACCESS', {
+      ip: req.ip,
+      endpoint: '/api/admin/stats'
+    });
+    return res.status(403).json({ success: false, message: 'Unauthorized' });
+  }
+  
+  const stats = securityLogger.getStats();
+  res.json({ success: true, stats });
+});
+
+app.post('/api/admin/block-ip', (req, res) => {
+  const adminKey = req.headers['x-admin-key'];
+  
+  if (adminKey !== process.env.ADMIN_KEY) {
+    return res.status(403).json({ success: false, message: 'Unauthorized' });
+  }
+  
+  const { ip, reason } = req.body;
+  securityLogger.blockIP(ip, reason);
+  res.json({ success: true, message: `IP ${ip} blocked` });
+});
+
 app.use((err, req, res, next) => {
-  console.error('💥 [API GATEWAY] Unhandled error:', err);
+  securityLogger.error('UNHANDLED_ERROR', {
+    error: err.message,
+    stack: err.stack,
+    endpoint: req.path
+  });
   res.status(500).json({ success: false, message: 'Internal server error' });
 });
 
 app.use((req, res) => {
-  console.warn(`⚠️ [API GATEWAY] 404: ${req.method} ${req.path}`);
+  securityLogger.warn('404_NOT_FOUND', {
+    method: req.method,
+    path: req.path,
+    ip: req.ip
+  });
   res.status(404).json({ success: false, message: 'Route not found' });
 });
 
-// ========== START SERVER ==========
 async function startServer() {
   await initBackend();
   
   app.listen(PORT, '0.0.0.0', () => {
+    securityLogger.info('SYSTEM', {
+      message: 'Server started',
+      port: PORT,
+      environment: process.env.NODE_ENV || 'development'
+    });
+    
     console.log(`
-╔═══════════════════════════════════════════════════════╗
-║   🌌 CONFIDENCE BOOK v2.0 - API GATEWAY               ║
-║   🌐 Server:     http://0.0.0.0:${PORT.toString().padEnd(27)}║
-║   📂 Entry:      welcome.html (NOT app.html!)        ║
-║   ⚙️  Backend:    server.js                            ║
-║   🔀 Gateway:     api.js (this file)                  ║
-║   🛡️  AI Models:  5 fallback (Groq)                   ║
-╚═══════════════════════════════════════════════════════╝
+===============================================================
+   CONFIDENCE BOOK - Secure API Gateway
+   Server:     http://0.0.0.0:${PORT}
+   Security:   Active (Rate Limit, Validation)
+   Logging:    logs/* (security, api, errors)
+===============================================================
     `);
   });
 }
+
+process.on('SIGTERM', () => {
+  securityLogger.info('SYSTEM', { message: 'SIGTERM received, shutting down gracefully' });
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  securityLogger.info('SYSTEM', { message: 'SIGINT received, shutting down gracefully' });
+  process.exit(0);
+});
 
 startServer();
