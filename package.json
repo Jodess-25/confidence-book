@@ -1,26 +1,26 @@
 {
   "name": "confidence-book",
-  "version": "2.0.0",
-  "description": "Confidence Book - Votre refuge émotionnel anonyme",
-  "type": "module",
+  "version": "1.0.0",
+  "description": "Plateforme de soutien émotionnel anonyme",
   "main": "api.js",
+  "type": "module",
   "scripts": {
     "start": "node api.js",
-    "dev": "node --watch api.js",
+    "dev": "node api.js",
     "reset-db": "node scripts/reset-db.js"
   },
   "keywords": [
-    "confidence",
-    "emotional-support",
-    "anonymous",
-    "mental-health"
+    "support",
+    "mental-health",
+    "anonymous"
   ],
-  "author": "Anzize Daouda",
+  "author": "Nexus Studio",
   "license": "MIT",
   "dependencies": {
     "express": "^4.18.2",
-    "@libsql/client": "^0.5.2",
-    "groq-sdk": "^0.3.0"
+    "@libsql/client": "^0.4.0",
+    "dotenv": "^16.3.1",
+    "crypto": "^1.0.1"
   },
   "engines": {
     "node": ">=18.0.0"
