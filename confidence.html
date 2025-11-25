@@ -1,201 +1,226 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Confidence - Confidence Book</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #667eea; border-radius: 4px; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confidence - Confidence Book</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="/assets/translations.js"></script>
+  <style>
+    body.dark { background: #0a0a0f; color: #e8e8f0; }
+    body.light { background: #f8f9fa; color: #1f2937; }
+    .card-dark { background: #1a1a24; }
+    .card-light { background: #ffffff; }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; }
+    ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+  </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    
-    <header class="bg-white border-b sticky top-0 z-20 shadow-sm">
-        <div class="container mx-auto max-w-4xl px-4 py-3 flex items-center justify-between">
-            <button onclick="window.history.back()" class="text-gray-600 hover:text-gray-900">
-                ← Retour
-            </button>
-            <h1 class="text-xl font-bold text-purple-600">Confidence</h1>
-            <a href="/feed" class="text-gray-600 hover:text-gray-900">Accueil</a>
-        </div>
-    </header>
-    
-    <div class="container mx-auto max-w-4xl px-4 py-8">
-        
-        <div id="confidence-detail" class="space-y-6">
-            <div class="text-center text-gray-500 py-12">
-                <p>Chargement...</p>
-            </div>
-        </div>
-        
+<body class="dark p-6">
+  <div class="max-w-4xl mx-auto">
+    <button onclick="location.href='/feed.html'" class="flex items-center gap-2 text-purple-400 hover:text-purple-300 mb-6 transition">
+      <i data-lucide="arrow-left" class="w-5 h-5"></i>
+      <span id="back-btn"></span>
+    </button>
+
+    <div id="confidence-container" class="card-dark rounded-2xl p-6 mb-6"></div>
+
+    <div class="card-dark rounded-2xl p-6 mb-6">
+      <h2 class="text-xl font-bold mb-4" id="add-comment-title"></h2>
+      <textarea id="comment-content" rows="3" class="w-full px-4 py-3 bg-purple-600/10 rounded-lg border-2 border-transparent focus:border-purple-600 focus:outline-none mb-4" placeholder=""></textarea>
+      <button onclick="addComment()" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold py-3 px-6 rounded-xl" id="send-btn"></button>
     </div>
-    
-    <script>
-        const currentUserId = localStorage.getItem('user_id');
-        const confidenceId = window.location.pathname.split('/').pop();
-        
-        const CHAPTERS = [
-            { id: 'ruptures', emoji: '💔', name: 'Ruptures & Relations' },
-            { id: 'isolement', emoji: '😔', name: 'Isolement & Tristesse' },
-            { id: 'traumas', emoji: '🔥', name: 'Traumas & Expériences' },
-            { id: 'stress', emoji: '🧠', name: 'Stress & Santé Mentale' },
-            { id: 'spiritualite', emoji: '🪞', name: 'Spiritualité & Quête' },
-            { id: 'espoir', emoji: '🤝', name: 'Espoir & Reconstruction' }
-        ];
-        
-        const REACTIONS = [
-            { id: 'soutiens', emoji: '🤝', label: 'Je te soutiens' },
-            { id: 'espoir', emoji: '🔥', label: 'Garde espoir' },
-            { id: 'compatis', emoji: '🤜🤛', label: 'Je compatis' },
-            { id: 'pas_seul', emoji: '🫂', label: 'T\'es pas seul' },
-            { id: 'courage', emoji: '🙌', label: 'Courage' },
-            { id: 'triste', emoji: '💔', label: 'C\'est triste' }
-        ];
-        
-        document.addEventListener('DOMContentLoaded', () => {
-            loadConfidence();
+
+    <div id="responses-container"></div>
+  </div>
+
+  <div id="reactions-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="card-dark rounded-2xl p-6">
+      <div class="grid grid-cols-2 gap-4">
+        <button onclick="react('soutiens', 'confidence')" class="flex items-center gap-2 px-4 py-3 bg-blue-500/20 hover:bg-blue-500/30 rounded-lg transition">
+          <i data-lucide="handshake" class="w-6 h-6 text-blue-500"></i>
+          <span id="reaction-soutiens"></span>
+        </button>
+        <button onclick="react('espoir', 'confidence')" class="flex items-center gap-2 px-4 py-3 bg-yellow-500/20 hover:bg-yellow-500/30 rounded-lg transition">
+          <i data-lucide="flame" class="w-6 h-6 text-yellow-500"></i>
+          <span id="reaction-espoir"></span>
+        </button>
+        <button onclick="react('compatis', 'confidence')" class="flex items-center gap-2 px-4 py-3 bg-purple-500/20 hover:bg-purple-500/30 rounded-lg transition">
+          <i data-lucide="heart" class="w-6 h-6 text-purple-500"></i>
+          <span id="reaction-compatis"></span>
+        </button>
+        <button onclick="react('pas_seul', 'confidence')" class="flex items-center gap-2 px-4 py-3 bg-green-500/20 hover:bg-green-500/30 rounded-lg transition">
+          <i data-lucide="users" class="w-6 h-6 text-green-500"></i>
+          <span id="reaction-pas_seul"></span>
+        </button>
+        <button onclick="react('courage', 'confidence')" class="flex items-center gap-2 px-4 py-3 bg-orange-500/20 hover:bg-orange-500/30 rounded-lg transition">
+          <i data-lucide="zap" class="w-6 h-6 text-orange-500"></i>
+          <span id="reaction-courage"></span>
+        </button>
+        <button onclick="react('triste', 'confidence')" class="flex items-center gap-2 px-4 py-3 bg-red-500/20 hover:bg-red-500/30 rounded-lg transition">
+          <i data-lucide="frown" class="w-6 h-6 text-red-500"></i>
+          <span id="reaction-triste"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const userId = localStorage.getItem('confidenceBookUserID');
+    if (!userId) location.href = '/auth.html';
+
+    const lang = getCurrentLanguage();
+    const urlParams = new URLSearchParams(window.location.search);
+    const confidenceId = urlParams.get('id');
+    let currentReactionTarget = null;
+
+    document.getElementById('back-btn').textContent = t('confidence.back', lang);
+    document.getElementById('add-comment-title').textContent = t('confidence.add_comment', lang);
+    document.getElementById('comment-content').placeholder = t('confidence.comment_placeholder', lang);
+    document.getElementById('send-btn').textContent = t('confidence.send', lang);
+
+    document.getElementById('reaction-soutiens').textContent = t('reactions.soutiens', lang);
+    document.getElementById('reaction-espoir').textContent = t('reactions.espoir', lang);
+    document.getElementById('reaction-compatis').textContent = t('reactions.compatis', lang);
+    document.getElementById('reaction-pas_seul').textContent = t('reactions.pas_seul', lang);
+    document.getElementById('reaction-courage').textContent = t('reactions.courage', lang);
+    document.getElementById('reaction-triste').textContent = t('reactions.triste', lang);
+
+    async function loadConfidence() {
+      try {
+        const response = await fetch(`/api/confidences/${confidenceId}`, {
+          headers: { 'X-User-ID': userId }
         });
-        
-        async function loadConfidence() {
-            try {
-                const response = await fetch(`/api/confidences/${confidenceId}`);
-                const result = await response.json();
-                
-                if (result.success) {
-                    renderConfidence(result.data);
-                } else {
-                    document.getElementById('confidence-detail').innerHTML = '<div class="text-center text-red-600 py-12"><p>Confidence introuvable</p></div>';
-                }
-            } catch (error) {
-                console.error('Error:', error);
-            }
+        const data = await response.json();
+
+        if (data.success) {
+          renderConfidence(data.confidence);
+          renderResponses(data.responses);
         }
-        
-        function renderConfidence(conf) {
-            const chapter = CHAPTERS.find(ch => ch.id === conf.emotion) || CHAPTERS[0];
-            const isOwner = conf.user_id === currentUserId;
-            
-            const html = `
-                <article class="bg-white rounded-2xl shadow-sm border overflow-hidden">
-                    <div class="p-6 border-b">
-                        <div class="flex items-center space-x-3 mb-4">
-                            <div class="w-14 h-14 rounded-full bg-purple-100 flex items-center justify-center">
-                                <span class="text-3xl">${chapter.emoji}</span>
-                            </div>
-                            <div>
-                                <p class="font-semibold text-gray-800">${chapter.name}</p>
-                                <p class="text-sm text-gray-500">${new Date(conf.created_at).toLocaleDateString('fr-FR')}</p>
-                            </div>
-                        </div>
-                        
-                        <p class="text-xl leading-relaxed text-gray-800">${escapeHtml(conf.content)}</p>
-                    </div>
-                    
-                    <div class="p-6 border-b bg-gray-50">
-                        <p class="text-sm font-medium text-gray-700 mb-3">Réactions :</p>
-                        <div class="flex flex-wrap gap-2">
-                            ${REACTIONS.map(r => `
-                                <button onclick="react('${conf.id}', '${r.id}')" class="px-4 py-2 rounded-full text-sm border border-gray-300 hover:border-purple-600 hover:bg-purple-50 transition">
-                                    ${r.emoji} ${r.label} (${conf.reactions[r.id] || 0})
-                                </button>
-                            `).join('')}
-                        </div>
-                    </div>
-                    
-                    <div class="p-6">
-                        <h2 class="text-lg font-bold text-gray-800 mb-4">💬 Réponses bienveillantes (${conf.responses?.length || 0})</h2>
-                        
-                        <div class="space-y-4 mb-6" id="responses-list">
-                            ${conf.responses?.length > 0 ? conf.responses.map(r => `
-                                <div class="flex space-x-3">
-                                    <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                                        <span class="text-xl">${r.avatar}</span>
-                                    </div>
-                                    <div class="flex-1 bg-gray-50 rounded-2xl p-4">
-                                        <p class="text-gray-800">${escapeHtml(r.content)}</p>
-                                        <p class="text-xs text-gray-400 mt-2">${new Date(r.created_at).toLocaleString('fr-FR')}</p>
-                                    </div>
-                                </div>
-                            `).join('') : '<p class="text-gray-500 text-center py-6">Aucune réponse pour le moment. Soyez le premier à répondre.</p>'}
-                        </div>
-                        
-                        <div class="flex space-x-3">
-                            <div class="w-10 h-10 rounded-full bg-gray-200 flex-shrink-0"></div>
-                            <textarea id="response-input" rows="3" placeholder="Répondre avec bienveillance..." class="flex-1 p-3 border-2 border-gray-300 rounded-xl focus:border-purple-600 focus:outline-none resize-none"></textarea>
-                            <button onclick="addResponse()" class="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-medium rounded-xl hover:shadow-lg transition">
-                                Envoyer
-                            </button>
-                        </div>
-                    </div>
-                </article>
-            `;
-            
-            document.getElementById('confidence-detail').innerHTML = html;
+      } catch (error) {
+        console.error('Error loading confidence:', error);
+      }
+    }
+
+    function renderConfidence(conf) {
+      const container = document.getElementById('confidence-container');
+      container.innerHTML = `
+        <div class="flex items-center gap-2 mb-3">
+          <i data-lucide="message-circle" class="w-5 h-5 text-purple-500"></i>
+          <span class="text-sm text-purple-400">${t('emotions.' + conf.emotion, lang)}</span>
+        </div>
+        <p class="mb-4 leading-relaxed text-lg">${conf.content}</p>
+        <div class="flex gap-4">
+          <button onclick="openReactionsModal('confidence')" class="flex items-center gap-2 text-sm text-gray-400 hover:text-purple-400 transition">
+            <i data-lucide="heart" class="w-4 h-4"></i>
+            <span>${conf.reaction_count} ${t('feed.reactions', lang)}</span>
+          </button>
+        </div>
+      `;
+      lucide.createIcons();
+    }
+
+    function renderResponses(responses) {
+      const container = document.getElementById('responses-container');
+      
+      if (responses.length === 0) {
+        container.innerHTML = `<p class="text-center text-gray-500 py-8">${t('confidence.no_comments', lang)}</p>`;
+        return;
+      }
+
+      container.innerHTML = responses.map(resp => `
+        <div class="card-dark rounded-2xl p-6 mb-4">
+          <div class="flex items-start gap-3 mb-3">
+            <i data-lucide="${resp.avatar}" class="w-8 h-8 text-purple-400"></i>
+            <div class="flex-1">
+              <p class="leading-relaxed mb-3">${resp.content}</p>
+              <button onclick="openReactionsModal('response', '${resp.id}')" class="flex items-center gap-2 text-sm text-gray-400 hover:text-purple-400 transition">
+                <i data-lucide="heart" class="w-4 h-4"></i>
+                <span>${resp.reaction_count} ${t('feed.reactions', lang)}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      lucide.createIcons();
+    }
+
+    async function addComment() {
+      const content = document.getElementById('comment-content').value.trim();
+
+      if (content.length < 5) return;
+
+      try {
+        const response = await fetch('/api/responses', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-ID': userId
+          },
+          body: JSON.stringify({
+            confidenceId,
+            content
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          document.getElementById('comment-content').value = '';
+          loadConfidence();
+        } else {
+          alert(data.message);
         }
-        
-        async function react(confidenceId, reactionType) {
-            try {
-                await fetch('/api/reactions', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-User-Id': currentUserId
-                    },
-                    body: JSON.stringify({ confidenceId, reactionType })
-                });
-                
-                await loadConfidence();
-            } catch (error) {
-                console.error('Error:', error);
-            }
+      } catch (error) {
+        alert(t('common.error', lang));
+      }
+    }
+
+    function openReactionsModal(type, targetId = null) {
+      currentReactionTarget = { type, id: targetId || confidenceId };
+      document.getElementById('reactions-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    async function react(reactionType, targetType) {
+      if (!currentReactionTarget) return;
+
+      try {
+        const endpoint = currentReactionTarget.type === 'confidence' ? '/api/reactions' : '/api/response-reactions';
+        const body = currentReactionTarget.type === 'confidence' 
+          ? { confidenceId: currentReactionTarget.id, type: reactionType }
+          : { responseId: currentReactionTarget.id, type: reactionType };
+
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-ID': userId
+          },
+          body: JSON.stringify(body)
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          document.getElementById('reactions-modal').classList.add('hidden');
+          loadConfidence();
         }
-        
-        async function addResponse() {
-            const content = document.getElementById('response-input').value.trim();
-            
-            if (!content || content.length < 5) {
-                alert('Votre réponse doit contenir au moins 5 caractères');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/responses', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-User-Id': currentUserId
-                    },
-                    body: JSON.stringify({
-                        confidenceId,
-                        content
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    document.getElementById('response-input').value = '';
-                    await loadConfidence();
-                } else {
-                    alert(result.message || 'Erreur lors de l\'envoi');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Erreur de connexion');
-            }
-        }
-        
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-    </script>
-    
+      } catch (error) {
+        alert(t('common.error', lang));
+      }
+    }
+
+    document.getElementById('reactions-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'reactions-modal') {
+        document.getElementById('reactions-modal').classList.add('hidden');
+      }
+    });
+
+    loadConfidence();
+    lucide.createIcons();
+  </script>
 </body>
 </html>
