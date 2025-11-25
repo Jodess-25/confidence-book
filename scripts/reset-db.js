@@ -1,73 +1,46 @@
-// scripts/reset-db.js - Reset Database Script
-// À UTILISER UNIQUEMENT EN DÉVELOPPEMENT OU POUR MIGRATION
-
 import { createClient } from '@libsql/client';
-import * as readline from 'readline';
+import dotenv from 'dotenv';
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
+dotenv.config();
+
+const db = createClient({
+  url: process.env.DATABASE_URL,
+  authToken: process.env.DATABASE_AUTH_TOKEN
 });
 
-function question(query) {
-  return new Promise(resolve => rl.question(query, resolve));
-}
-
 async function resetDatabase() {
-  console.log('\n🚨 DATABASE RESET SCRIPT 🚨\n');
-  console.log('⚠️  WARNING: This will DELETE ALL DATA in the database!');
-  console.log('   - All users');
-  console.log('   - All confidences');
-  console.log('   - All reactions');
-  console.log('   - All responses\n');
-  
-  const confirm1 = await question('Type "YES" to continue: ');
-  
-  if (confirm1.trim() !== 'YES') {
-    console.log('❌ Reset cancelled');
-    rl.close();
-    return;
-  }
-  
-  const confirm2 = await question('Are you ABSOLUTELY sure? Type "DELETE ALL DATA": ');
-  
-  if (confirm2.trim() !== 'DELETE ALL DATA') {
-    console.log('❌ Reset cancelled');
-    rl.close();
-    return;
-  }
-  
-  console.log('\n🔧 Connecting to database...');
-  
-  const db = createClient({
-    url: process.env.DATABASE_URL || 'file:local.db',
-    authToken: process.env.DATABASE_AUTH_TOKEN
-  });
+  console.log('🔄 Starting database reset...');
   
   try {
-    console.log('🗑️  Dropping all tables...');
-    
+    // Drop existing tables
+    console.log('📦 Dropping existing tables...');
     await db.execute('DROP TABLE IF EXISTS response_reactions');
     await db.execute('DROP TABLE IF EXISTS responses');
     await db.execute('DROP TABLE IF EXISTS reactions');
     await db.execute('DROP TABLE IF EXISTS confidences');
     await db.execute('DROP TABLE IF EXISTS users');
     
-    console.log('✅ All tables dropped');
+    console.log('✅ Tables dropped successfully');
     
-    console.log('🔧 Recreating tables...');
-    
-    // Users
+    // Create users table
+    console.log('📦 Creating users table...');
     await db.execute(`
       CREATE TABLE users (
         id TEXT PRIMARY KEY,
+        secret_phrase_hash TEXT NOT NULL,
         created_at INTEGER NOT NULL,
         last_active INTEGER,
-        settings TEXT DEFAULT '{}'
+        premium INTEGER DEFAULT 0,
+        premium_type TEXT,
+        premium_start INTEGER,
+        premium_end INTEGER,
+        premium_payment_id TEXT,
+        settings TEXT DEFAULT '{"theme":"dark","avatar":"moon","language":"fr"}'
       )
     `);
     
-    // Confidences
+    // Create confidences table
+    console.log('📦 Creating confidences table...');
     await db.execute(`
       CREATE TABLE confidences (
         id TEXT PRIMARY KEY,
@@ -76,13 +49,15 @@ async function resetDatabase() {
         emotion TEXT NOT NULL,
         moderation_score REAL,
         moderation_message TEXT,
+        needs_review INTEGER DEFAULT 0,
         created_at INTEGER NOT NULL,
         expires_at INTEGER NOT NULL,
-        FOREIGN KEY (user_id) REFERENCES users(id)
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `);
     
-    // Reactions
+    // Create reactions table
+    console.log('📦 Creating reactions table...');
     await db.execute(`
       CREATE TABLE reactions (
         id TEXT PRIMARY KEY,
@@ -90,12 +65,14 @@ async function resetDatabase() {
         user_id TEXT NOT NULL,
         type TEXT NOT NULL,
         created_at INTEGER NOT NULL,
-        FOREIGN KEY (confidence_id) REFERENCES confidences(id),
-        UNIQUE(confidence_id, user_id)
+        UNIQUE(confidence_id, user_id),
+        FOREIGN KEY (confidence_id) REFERENCES confidences(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `);
     
-    // Responses
+    // Create responses table
+    console.log('📦 Creating responses table...');
     await db.execute(`
       CREATE TABLE responses (
         id TEXT PRIMARY KEY,
@@ -105,11 +82,13 @@ async function resetDatabase() {
         avatar TEXT NOT NULL,
         moderation_score REAL,
         created_at INTEGER NOT NULL,
-        FOREIGN KEY (confidence_id) REFERENCES confidences(id)
+        FOREIGN KEY (confidence_id) REFERENCES confidences(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `);
     
-    // Response Reactions
+    // Create response_reactions table
+    console.log('📦 Creating response_reactions table...');
     await db.execute(`
       CREATE TABLE response_reactions (
         id TEXT PRIMARY KEY,
@@ -117,20 +96,18 @@ async function resetDatabase() {
         user_id TEXT NOT NULL,
         type TEXT NOT NULL,
         created_at INTEGER NOT NULL,
-        FOREIGN KEY (response_id) REFERENCES responses(id),
-        UNIQUE(response_id, user_id)
+        UNIQUE(response_id, user_id),
+        FOREIGN KEY (response_id) REFERENCES responses(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `);
     
-    console.log('✅ Tables recreated');
-    
-    console.log('\n✅ DATABASE RESET COMPLETE');
-    console.log('   All data has been deleted and tables recreated.\n');
+    console.log('✅ All tables created successfully');
+    console.log('🎉 Database reset complete!');
     
   } catch (error) {
-    console.error('❌ Error during reset:', error);
-  } finally {
-    rl.close();
+    console.error('❌ Error resetting database:', error);
+    throw error;
   }
 }
 
