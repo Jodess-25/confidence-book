@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Premium - Confidence Book</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="/assets/translations.js"></script>
+  <style>
+    body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; }
+    ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+  </style>
+</head>
+<body class="p-6">
+  <div class="max-w-3xl mx-auto">
+    <button onclick="location.href='/feed.html'" class="flex items-center gap-2 text-white hover:text-purple-200 mb-6 transition">
+      <i data-lucide="arrow-left" class="w-5 h-5"></i>
+      <span id="back-btn">Retour</span>
+    </button>
+
+    <div class="bg-white rounded-3xl shadow-2xl p-8 mb-6">
+      <div class="text-center mb-8">
+        <i data-lucide="crown" class="w-16 h-16 mx-auto text-purple-600 mb-3"></i>
+        <h1 class="text-3xl font-bold text-gray-800 mb-2" id="page-title"></h1>
+        <p class="text-gray-600" id="page-subtitle"></p>
+      </div>
+
+      <div class="space-y-4 mb-8">
+        <div class="flex items-start gap-3">
+          <i data-lucide="infinity" class="w-6 h-6 text-purple-600 flex-shrink-0 mt-1"></i>
+          <div>
+            <h3 class="font-bold text-gray-800" id="feature1"></h3>
+            <p class="text-sm text-gray-600" id="feature1-desc"></p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <i data-lucide="book-open" class="w-6 h-6 text-purple-600 flex-shrink-0 mt-1"></i>
+          <div>
+            <h3 class="font-bold text-gray-800" id="feature2"></h3>
+            <p class="text-sm text-gray-600" id="feature2-desc"></p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <i data-lucide="palette" class="w-6 h-6 text-purple-600 flex-shrink-0 mt-1"></i>
+          <div>
+            <h3 class="font-bold text-gray-800" id="feature3"></h3>
+            <p class="text-sm text-gray-600" id="feature3-desc"></p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <i data-lucide="bar-chart" class="w-6 h-6 text-purple-600 flex-shrink-0 mt-1"></i>
+          <div>
+            <h3 class="font-bold text-gray-800" id="feature4"></h3>
+            <p class="text-sm text-gray-600" id="feature4-desc"></p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <i data-lucide="headphones" class="w-6 h-6 text-purple-600 flex-shrink-0 mt-1"></i>
+          <div>
+            <h3 class="font-bold text-gray-800" id="feature5"></h3>
+            <p class="text-sm text-gray-600" id="feature5-desc"></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-purple-50 rounded-2xl p-6 mb-6">
+        <h3 class="font-bold text-gray-800 mb-3" id="price-title"></h3>
+        <div class="space-y-2">
+          <div class="flex items-center gap-2">
+            <i data-lucide="check-circle" class="w-5 h-5 text-green-600"></i>
+            <span id="price-monthly"></span>
+          </div>
+          <div class="flex items-center gap-2">
+            <i data-lucide="check-circle" class="w-5 h-5 text-green-600"></i>
+            <span id="price-yearly"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-gray-50 rounded-2xl p-6 mb-6">
+        <h3 class="font-bold text-gray-800 mb-4" id="how-title"></h3>
+        <ol class="space-y-3">
+          <li class="flex gap-3">
+            <span class="flex-shrink-0 w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center text-sm font-bold">1</span>
+            <div>
+              <p class="text-gray-700" id="how-step1"></p>
+              <a href="https://wa.me/22969056283" class="text-purple-600 font-semibold hover:underline">+229 69 05 62 83</a>
+            </div>
+          </li>
+          <li class="flex gap-3">
+            <span class="flex-shrink-0 w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center text-sm font-bold">2</span>
+            <p class="text-gray-700" id="how-step2"></p>
+          </li>
+          <li class="flex gap-3">
+            <span class="flex-shrink-0 w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center text-sm font-bold">3</span>
+            <p class="text-gray-700" id="how-step3"></p>
+          </li>
+          <li class="flex gap-3">
+            <span class="flex-shrink-0 w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center text-sm font-bold">4</span>
+            <p class="text-gray-700" id="how-step4"></p>
+          </li>
+        </ol>
+      </div>
+
+      <a href="https://wa.me/22969056283" class="block w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl text-center transition">
+        <span id="contact-whatsapp"></span>
+      </a>
+    </div>
+
+    <div class="bg-white rounded-2xl p-6">
+      <h3 class="font-bold text-gray-800 mb-4" id="faq-title"></h3>
+      <div class="space-y-4">
+        <div>
+          <p class="font-semibold text-gray-800" id="faq-q1"></p>
+          <p class="text-sm text-gray-600" id="faq-a1"></p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-800" id="faq-q2"></p>
+          <p class="text-sm text-gray-600" id="faq-a2"></p>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-800" id="faq-q3"></p>
+          <p class="text-sm text-gray-600" id="faq-a3"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const lang = getCurrentLanguage();
+
+    document.getElementById('page-title').textContent = t('premium.title', lang);
+    document.getElementById('page-subtitle').textContent = t('premium.subtitle', lang);
+    
+    document.getElementById('feature1').textContent = t('premium.feature1', lang);
+    document.getElementById('feature1-desc').textContent = t('premium.feature1_desc', lang);
+    document.getElementById('feature2').textContent = t('premium.feature2', lang);
+    document.getElementById('feature2-desc').textContent = t('premium.feature2_desc', lang);
+    document.getElementById('feature3').textContent = t('premium.feature3', lang);
+    document.getElementById('feature3-desc').textContent = t('premium.feature3_desc', lang);
+    document.getElementById('feature4').textContent = t('premium.feature4', lang);
+    document.getElementById('feature4-desc').textContent = t('premium.feature4_desc', lang);
+    document.getElementById('feature5').textContent = t('premium.feature5', lang);
+    document.getElementById('feature5-desc').textContent = t('premium.feature5_desc', lang);
+    
+    document.getElementById('price-title').textContent = t('premium.price_title', lang);
+    document.getElementById('price-monthly').textContent = t('premium.price_monthly', lang);
+    document.getElementById('price-yearly').textContent = t('premium.price_yearly', lang);
+    
+    document.getElementById('how-title').textContent = t('premium.how_title', lang);
+    document.getElementById('how-step1').textContent = t('premium.how_step1', lang);
+    document.getElementById('how-step2').textContent = t('premium.how_step2', lang);
+    document.getElementById('how-step3').textContent = t('premium.how_step3', lang);
+    document.getElementById('how-step4').textContent = t('premium.how_step4', lang);
+    document.getElementById('contact-whatsapp').textContent = t('premium.contact_whatsapp', lang);
+    
+    document.getElementById('faq-title').textContent = t('premium.faq_title', lang);
+    document.getElementById('faq-q1').textContent = t('premium.faq_q1', lang);
+    document.getElementById('faq-a1').textContent = t('premium.faq_a1', lang);
+    document.getElementById('faq-q2').textContent = t('premium.faq_q2', lang);
+    document.getElementById('faq-a2').textContent = t('premium.faq_a2', lang);
+    document.getElementById('faq-q3').textContent = t('premium.faq_q3', lang);
+    document.getElementById('faq-a3').textContent = t('premium.faq_a3', lang);
+
+    lucide.createIcons();
+  </script>
+</body>
+</html>
