@@ -1,151 +1,238 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paramètres - Confidence Book</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings - Confidence Book</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="/assets/translations.js"></script>
+  <style>
+    body.dark { background: #0a0a0f; color: #e8e8f0; }
+    body.light { background: #f8f9fa; color: #1f2937; }
+    .card-dark { background: #1a1a24; }
+    .card-light { background: #ffffff; }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; }
+    ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+  </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    
-    <header class="bg-white border-b sticky top-0 z-20 shadow-sm">
-        <div class="container mx-auto max-w-4xl px-4 py-3 flex items-center justify-between">
-            <a href="/feed" class="text-gray-600 hover:text-gray-900">← Retour</a>
-            <h1 class="text-xl font-bold text-purple-600">Paramètres</h1>
-            <div></div>
+<body class="dark p-6">
+  <div class="max-w-2xl mx-auto">
+    <button onclick="location.href='/feed.html'" class="flex items-center gap-2 text-purple-400 hover:text-purple-300 mb-6 transition">
+      <i data-lucide="arrow-left" class="w-5 h-5"></i>
+      <span id="back-btn">Retour</span>
+    </button>
+
+    <div class="card-dark rounded-2xl p-6 mb-6">
+      <h1 class="text-2xl font-bold mb-6" id="page-title"></h1>
+
+      <div class="space-y-6">
+        <div>
+          <h3 class="font-bold mb-3" id="theme-title"></h3>
+          <div class="flex gap-3">
+            <button onclick="setTheme('light')" id="theme-light-btn" class="flex-1 px-4 py-3 rounded-lg border-2 transition">
+              <i data-lucide="sun" class="w-5 h-5 mx-auto mb-1"></i>
+              <div class="text-sm" id="theme-light"></div>
+            </button>
+            <button onclick="setTheme('dark')" id="theme-dark-btn" class="flex-1 px-4 py-3 rounded-lg border-2 transition">
+              <i data-lucide="moon" class="w-5 h-5 mx-auto mb-1"></i>
+              <div class="text-sm" id="theme-dark"></div>
+            </button>
+          </div>
         </div>
-    </header>
-    
-    <div class="container mx-auto max-w-4xl px-4 py-8">
-        
-        <div class="space-y-6">
-            
-            <!-- Apparence -->
-            <div class="bg-white rounded-2xl shadow-sm border p-6">
-                <h2 class="text-xl font-bold text-gray-800 mb-4">🎨 Apparence</h2>
-                
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="font-medium text-gray-800">Mode Sombre</p>
-                        <p class="text-sm text-gray-500">Activer le thème sombre</p>
-                    </div>
-                    <button id="dark-mode-toggle" onclick="toggleDarkMode()" class="relative inline-flex items-center h-6 rounded-full w-11 bg-gray-300 transition">
-                        <span class="inline-block w-4 h-4 transform transition-transform bg-white rounded-full translate-x-1"></span>
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Compte -->
-            <div class="bg-white rounded-2xl shadow-sm border p-6">
-                <h2 class="text-xl font-bold text-gray-800 mb-4">👤 Mon Compte Anonyme</h2>
-                
-                <div class="bg-purple-50 rounded-xl p-4 mb-4">
-                    <p class="text-sm font-medium text-gray-700 mb-2">Votre ID anonyme :</p>
-                    <div class="flex items-center justify-between">
-                        <code class="text-lg font-bold text-purple-600" id="user-id-display">CB_xxxxxxxx</code>
-                        <button onclick="copyID()" class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition">
-                            📋 Copier
-                        </button>
-                    </div>
-                </div>
-                
-                <p class="text-sm text-gray-600">Conservez cet ID en sécurité. Il vous permet de retrouver votre espace sur tout appareil.</p>
-            </div>
-            
-            <!-- Soutien -->
-            <div class="bg-gradient-to-r from-purple-100 to-indigo-100 rounded-2xl p-6">
-                <h2 class="text-xl font-bold text-gray-800 mb-2">💙 Soutenez Confidence Book</h2>
-                <p class="text-gray-700 mb-4">Aidez-nous à rester gratuit et sans publicité pour tous.</p>
-                <a href="/support" class="inline-block bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition">
-                    Faire un don →
-                </a>
-            </div>
-            
-            <!-- Déconnexion -->
-            <div class="bg-white rounded-2xl shadow-sm border p-6">
-                <h2 class="text-xl font-bold text-gray-800 mb-4">🚪 Déconnexion</h2>
-                <p class="text-sm text-gray-600 mb-4">Vous serez déconnecté de cet appareil. Assurez-vous d'avoir sauvegardé votre ID.</p>
-                <button onclick="logout()" class="bg-red-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-red-700 transition">
-                    Se déconnecter
-                </button>
-            </div>
-            
+
+        <div>
+          <h3 class="font-bold mb-3" id="language-title"></h3>
+          <div class="flex gap-3">
+            <button onclick="setLanguage('fr')" id="lang-fr-btn" class="flex-1 px-4 py-3 rounded-lg border-2 transition">
+              <div id="language-fr">Français</div>
+            </button>
+            <button onclick="setLanguage('en')" id="lang-en-btn" class="flex-1 px-4 py-3 rounded-lg border-2 transition">
+              <div id="language-en">English</div>
+            </button>
+          </div>
         </div>
-        
+
+        <div>
+          <h3 class="font-bold mb-3" id="avatar-title"></h3>
+          <p class="text-sm text-gray-400 mb-3" id="avatar-description"></p>
+          <div class="grid grid-cols-4 gap-3">
+            <button onclick="setAvatar('moon')" class="avatar-btn p-3 rounded-lg border-2 transition" data-avatar="moon">
+              <i data-lucide="moon" class="w-6 h-6 mx-auto"></i>
+            </button>
+            <button onclick="setAvatar('sun')" class="avatar-btn p-3 rounded-lg border-2 transition" data-avatar="sun">
+              <i data-lucide="sun" class="w-6 h-6 mx-auto"></i>
+            </button>
+            <button onclick="setAvatar('leaf')" class="avatar-btn p-3 rounded-lg border-2 transition" data-avatar="leaf">
+              <i data-lucide="leaf" class="w-6 h-6 mx-auto"></i>
+            </button>
+            <button onclick="setAvatar('flower')" class="avatar-btn p-3 rounded-lg border-2 transition" data-avatar="flower">
+              <i data-lucide="flower" class="w-6 h-6 mx-auto"></i>
+            </button>
+            <button onclick="setAvatar('butterfly')" class="avatar-btn p-3 rounded-lg border-2 transition" data-avatar="butterfly">
+              <i data-lucide="bug" class="w-6 h-6 mx-auto"></i>
+            </button>
+            <button onclick="setAvatar('wave')" class="avatar-btn p-3 rounded-lg border-2 transition" data-avatar="wave">
+              <i data-lucide="waves" class="w-6 h-6 mx-auto"></i>
+            </button>
+            <button onclick="setAvatar('sparkles')" class="avatar-btn p-3 rounded-lg border-2 transition" data-avatar="sparkles">
+              <i data-lucide="sparkles" class="w-6 h-6 mx-auto"></i>
+            </button>
+            <button onclick="setAvatar('star')" class="avatar-btn p-3 rounded-lg border-2 transition" data-avatar="star">
+              <i data-lucide="star" class="w-6 h-6 mx-auto"></i>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="font-bold mb-3" id="my-id-title"></h3>
+          <div class="flex gap-2">
+            <code class="flex-1 bg-purple-600/10 px-4 py-3 rounded-lg font-mono text-sm" id="user-id"></code>
+            <button onclick="copyId()" class="px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition" id="copy-btn">
+              <i data-lucide="copy" class="w-5 h-5"></i>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
-    
-    <script>
-        const currentUserId = localStorage.getItem('user_id');
-        
-        if (!currentUserId) {
-            window.location.href = '/';
+
+    <div class="space-y-3">
+      <button onclick="logout()" class="w-full px-6 py-3 bg-purple-600/20 hover:bg-purple-600/30 rounded-xl transition flex items-center justify-center gap-2">
+        <i data-lucide="log-out" class="w-5 h-5"></i>
+        <span id="logout-btn"></span>
+      </button>
+      <button onclick="deleteAccount()" class="w-full px-6 py-3 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-xl transition flex items-center justify-center gap-2">
+        <i data-lucide="trash" class="w-5 h-5"></i>
+        <span id="delete-btn"></span>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const userId = localStorage.getItem('confidenceBookUserID');
+    if (!userId) location.href = '/auth.html';
+
+    const lang = getCurrentLanguage();
+
+    document.getElementById('page-title').textContent = t('settings.title', lang);
+    document.getElementById('theme-title').textContent = t('settings.theme_title', lang);
+    document.getElementById('theme-light').textContent = t('settings.theme_light', lang);
+    document.getElementById('theme-dark').textContent = t('settings.theme_dark', lang);
+    document.getElementById('language-title').textContent = t('settings.language_title', lang);
+    document.getElementById('language-fr').textContent = t('settings.language_fr', lang);
+    document.getElementById('language-en').textContent = t('settings.language_en', lang);
+    document.getElementById('avatar-title').textContent = t('settings.avatar_title', lang);
+    document.getElementById('avatar-description').textContent = t('settings.avatar_description', lang);
+    document.getElementById('my-id-title').textContent = t('settings.my_id', lang);
+    document.getElementById('logout-btn').textContent = t('settings.logout', lang);
+    document.getElementById('delete-btn').textContent = t('settings.delete_account', lang);
+    document.getElementById('user-id').textContent = userId;
+
+    let currentSettings = {
+      theme: localStorage.getItem('confidenceBookTheme') || 'dark',
+      avatar: 'moon',
+      language: getCurrentLanguage()
+    };
+
+    async function loadSettings() {
+      try {
+        const response = await fetch('/api/profile', {
+          headers: { 'X-User-ID': userId }
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          currentSettings = data.profile.settings;
+          applySettings();
         }
-        
-        document.getElementById('user-id-display').textContent = currentUserId;
-        
-        // Dark Mode
-        function toggleDarkMode() {
-            const html = document.documentElement;
-            const toggle = document.getElementById('dark-mode-toggle');
-            const indicator = toggle.querySelector('span');
-            
-            if (html.classList.contains('theme-dark')) {
-                html.classList.remove('theme-dark');
-                html.classList.add('theme-light');
-                toggle.classList.remove('bg-purple-600');
-                toggle.classList.add('bg-gray-300');
-                indicator.classList.remove('translate-x-6');
-                indicator.classList.add('translate-x-1');
-                localStorage.setItem('theme', 'light');
-            } else {
-                html.classList.add('theme-dark');
-                html.classList.remove('theme-light');
-                toggle.classList.add('bg-purple-600');
-                toggle.classList.remove('bg-gray-300');
-                indicator.classList.add('translate-x-6');
-                indicator.classList.remove('translate-x-1');
-                localStorage.setItem('theme', 'dark');
-            }
+      } catch (error) {
+        console.error('Error loading settings:', error);
+      }
+    }
+
+    function applySettings() {
+      document.body.className = currentSettings.theme;
+      
+      if (currentSettings.theme === 'dark') {
+        document.getElementById('theme-dark-btn').className = 'flex-1 px-4 py-3 rounded-lg border-2 border-purple-600 bg-purple-600/20 transition';
+        document.getElementById('theme-light-btn').className = 'flex-1 px-4 py-3 rounded-lg border-2 border-gray-600 transition';
+      } else {
+        document.getElementById('theme-light-btn').className = 'flex-1 px-4 py-3 rounded-lg border-2 border-purple-600 bg-purple-600/20 transition';
+        document.getElementById('theme-dark-btn').className = 'flex-1 px-4 py-3 rounded-lg border-2 border-gray-600 transition';
+      }
+
+      if (currentSettings.language === 'fr') {
+        document.getElementById('lang-fr-btn').className = 'flex-1 px-4 py-3 rounded-lg border-2 border-purple-600 bg-purple-600/20 transition';
+        document.getElementById('lang-en-btn').className = 'flex-1 px-4 py-3 rounded-lg border-2 border-gray-600 transition';
+      } else {
+        document.getElementById('lang-en-btn').className = 'flex-1 px-4 py-3 rounded-lg border-2 border-purple-600 bg-purple-600/20 transition';
+        document.getElementById('lang-fr-btn').className = 'flex-1 px-4 py-3 rounded-lg border-2 border-gray-600 transition';
+      }
+
+      document.querySelectorAll('.avatar-btn').forEach(btn => {
+        if (btn.dataset.avatar === currentSettings.avatar) {
+          btn.className = 'avatar-btn p-3 rounded-lg border-2 border-purple-600 bg-purple-600/20 transition';
+        } else {
+          btn.className = 'avatar-btn p-3 rounded-lg border-2 border-gray-600 transition';
         }
-        
-        // Init theme
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme === 'dark') {
-            document.documentElement.classList.add('theme-dark');
-            const toggle = document.getElementById('dark-mode-toggle');
-            toggle.classList.add('bg-purple-600');
-            toggle.classList.remove('bg-gray-300');
-            toggle.querySelector('span').classList.add('translate-x-6');
-        }
-        
-        // Copy ID
-        function copyID() {
-            navigator.clipboard.writeText(currentUserId);
-            const btn = event.target;
-            const original = btn.textContent;
-            btn.textContent = '✅ Copié !';
-            btn.classList.add('bg-green-600');
-            btn.classList.remove('bg-purple-600');
-            
-            setTimeout(() => {
-                btn.textContent = original;
-                btn.classList.remove('bg-green-600');
-                btn.classList.add('bg-purple-600');
-            }, 2000);
-        }
-        
-        // Logout
-        function logout() {
-            if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
-                localStorage.removeItem('user_id');
-                window.location.href = '/';
-            }
-        }
-    </script>
-    
+      });
+
+      lucide.createIcons();
+    }
+
+    async function saveSettings() {
+      try {
+        await fetch('/api/settings', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-ID': userId
+          },
+          body: JSON.stringify(currentSettings)
+        });
+      } catch (error) {
+        console.error('Error saving settings:', error);
+      }
+    }
+
+    function setTheme(theme) {
+      currentSettings.theme = theme;
+      localStorage.setItem('confidenceBookTheme', theme);
+      applySettings();
+      saveSettings();
+    }
+
+    function setAvatar(avatar) {
+      currentSettings.avatar = avatar;
+      applySettings();
+      saveSettings();
+    }
+
+    function copyId() {
+      navigator.clipboard.writeText(userId);
+      alert(t('common.copied', lang));
+    }
+
+    function logout() {
+      localStorage.removeItem('confidenceBookUserID');
+      location.href = '/welcome.html';
+    }
+
+    function deleteAccount() {
+      if (!confirm(t('settings.delete_confirm', lang))) return;
+
+      fetch('/api/account', {
+        method: 'DELETE',
+        headers: { 'X-User-ID': userId }
+      }).then(() => {
+        localStorage.removeItem('confidenceBookUserID');
+        location.href = '/welcome.html';
+      });
+    }
+
+    loadSettings();
+    lucide.createIcons();
+  </script>
 </body>
 </html>
