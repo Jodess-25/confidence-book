@@ -1,721 +1,594 @@
-// server.js - BACKEND SERVICE CONFIDENCE BOOK v2.0
-
 import { createClient } from '@libsql/client';
+import dotenv from 'dotenv';
+import crypto from 'crypto';
 
-export class ConfidenceBookService {
+dotenv.config();
+
+const GROQ_MODELS = [
+  'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant',
+  'gemma2-9b-it',
+  'mixtral-8x7b-32768',
+  'llama3-70b-8192'
+];
+
+const AVATARS = ['moon', 'sun', 'leaf', 'flower', 'butterfly', 'wave', 'sparkles', 'star'];
+
+export class BackendService {
   constructor() {
     this.db = null;
-    this.aiEndpoint = 'https://api.groq.com/openai/v1/chat/completions';
-    this.aiApiKey = process.env.GROQ_API_KEY;
-    
-    // 5 modèles en fallback
-    this.groqModels = [
-      'llama-3.3-70b-versatile',
-      'llama-3.1-8b-instant',
-      'gemma2-9b-it',
-      'mixtral-8x7b-32768',
-      'llama3-70b-8192'
-    ];
   }
 
   async init() {
-    console.log('✅ [BACKEND] Initializing Confidence Book Service v2.0...');
-    
     this.db = createClient({
-      url: process.env.DATABASE_URL || 'file:local.db',
+      url: process.env.DATABASE_URL,
       authToken: process.env.DATABASE_AUTH_TOKEN
     });
 
-    await this.createTables();
-    console.log('✅ [BACKEND] Database connected');
+    if (process.env.RESET_DB === 'true') {
+      await this.resetDatabase();
+    }
   }
 
-  async createTables() {
-    // Users
-    await this.db.execute(`
-      CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
-        created_at INTEGER NOT NULL,
-        last_active INTEGER,
-        settings TEXT DEFAULT '{}'
-      )
-    `);
-
-    // Confidences
-    await this.db.execute(`
-      CREATE TABLE IF NOT EXISTS confidences (
-        id TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL,
-        content TEXT NOT NULL,
-        emotion TEXT NOT NULL,
-        moderation_score REAL,
-        moderation_message TEXT,
-        created_at INTEGER NOT NULL,
-        expires_at INTEGER NOT NULL,
-        FOREIGN KEY (user_id) REFERENCES users(id)
-      )
-    `);
-
-    // Reactions (6 nouvelles réactions)
-    await this.db.execute(`
-      CREATE TABLE IF NOT EXISTS reactions (
-        id TEXT PRIMARY KEY,
-        confidence_id TEXT NOT NULL,
-        user_id TEXT NOT NULL,
-        type TEXT NOT NULL,
-        created_at INTEGER NOT NULL,
-        FOREIGN KEY (confidence_id) REFERENCES confidences(id),
-        UNIQUE(confidence_id, user_id)
-      )
-    `);
-
-    // Responses
-    await this.db.execute(`
-      CREATE TABLE IF NOT EXISTS responses (
-        id TEXT PRIMARY KEY,
-        confidence_id TEXT NOT NULL,
-        user_id TEXT NOT NULL,
-        content TEXT NOT NULL,
-        avatar TEXT NOT NULL,
-        moderation_score REAL,
-        created_at INTEGER NOT NULL,
-        FOREIGN KEY (confidence_id) REFERENCES confidences(id)
-      )
-    `);
-
-    // Responses Reactions
-    await this.db.execute(`
-      CREATE TABLE IF NOT EXISTS response_reactions (
-        id TEXT PRIMARY KEY,
-        response_id TEXT NOT NULL,
-        user_id TEXT NOT NULL,
-        type TEXT NOT NULL,
-        created_at INTEGER NOT NULL,
-        FOREIGN KEY (response_id) REFERENCES responses(id),
-        UNIQUE(response_id, user_id)
-      )
-    `);
-
-    console.log('✅ [BACKEND] Tables created/verified');
+  async resetDatabase() {
+    console.log('🔄 RESET_DB enabled - Resetting database...');
+    
+    try {
+      await this.db.execute('DROP TABLE IF EXISTS response_reactions');
+      await this.db.execute('DROP TABLE IF EXISTS responses');
+      await this.db.execute('DROP TABLE IF EXISTS reactions');
+      await this.db.execute('DROP TABLE IF EXISTS confidences');
+      await this.db.execute('DROP TABLE IF EXISTS users');
+      
+      await this.db.execute(`
+        CREATE TABLE users (
+          id TEXT PRIMARY KEY,
+          secret_phrase_hash TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          last_active INTEGER,
+          premium INTEGER DEFAULT 0,
+          premium_type TEXT,
+          premium_start INTEGER,
+          premium_end INTEGER,
+          premium_payment_id TEXT,
+          settings TEXT DEFAULT '{"theme":"dark","avatar":"moon","language":"fr"}'
+        )
+      `);
+      
+      await this.db.execute(`
+        CREATE TABLE confidences (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          content TEXT NOT NULL,
+          emotion TEXT NOT NULL,
+          moderation_score REAL,
+          moderation_message TEXT,
+          needs_review INTEGER DEFAULT 0,
+          created_at INTEGER NOT NULL,
+          expires_at INTEGER NOT NULL,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+      `);
+      
+      await this.db.execute(`
+        CREATE TABLE reactions (
+          id TEXT PRIMARY KEY,
+          confidence_id TEXT NOT NULL,
+          user_id TEXT NOT NULL,
+          type TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          UNIQUE(confidence_id, user_id),
+          FOREIGN KEY (confidence_id) REFERENCES confidences(id) ON DELETE CASCADE,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+      `);
+      
+      await this.db.execute(`
+        CREATE TABLE responses (
+          id TEXT PRIMARY KEY,
+          confidence_id TEXT NOT NULL,
+          user_id TEXT NOT NULL,
+          content TEXT NOT NULL,
+          avatar TEXT NOT NULL,
+          moderation_score REAL,
+          created_at INTEGER NOT NULL,
+          FOREIGN KEY (confidence_id) REFERENCES confidences(id) ON DELETE CASCADE,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+      `);
+      
+      await this.db.execute(`
+        CREATE TABLE response_reactions (
+          id TEXT PRIMARY KEY,
+          response_id TEXT NOT NULL,
+          user_id TEXT NOT NULL,
+          type TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          UNIQUE(response_id, user_id),
+          FOREIGN KEY (response_id) REFERENCES responses(id) ON DELETE CASCADE,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+      `);
+      
+      console.log('✅ Database reset complete');
+    } catch (error) {
+      console.error('❌ Database reset failed:', error);
+      throw error;
+    }
   }
 
-  // ========== AUTH ==========
-  
-  async createAnonymousUser() {
-    const userId = this.generateUserID();
+  generateId(prefix) {
+    return `${prefix}_${crypto.randomBytes(4).toString('hex')}`;
+  }
+
+  hashPhrase(phrase) {
+    return crypto.createHash('sha256').update(phrase).digest('hex');
+  }
+
+  async moderateContent(content) {
+    const prompt = `Tu es un système de modération pour une plateforme de soutien émotionnel anonyme.
+
+RÈGLES DE MODÉRATION :
+
+✅ TOUJOURS ACCEPTER :
+- Émotions brutes (tristesse, colère, peur, solitude, désespoir)
+- Appels à l'aide (pensées suicidaires, détresse mentale, anxiété)
+- Récits de trauma (abus passés, deuil, rupture douloureuse)
+- Remise en question (identité, croyances, choix de vie)
+- Langage cru non haineux ("ma vie est de la merde")
+
+⚠️ ACCEPTER AVEC WARNING (retourner "warning"):
+- Mentions de mort/suicide (publier + afficher ressources d'aide)
+
+❌ REJETER :
+- Violence explicite envers autrui ("je vais le tuer")
+- Haine/Discrimination (racisme, homophobie, sexisme)
+- Spam/Publicité
+- Contenu sexuel explicite (MAIS accepter "j'ai été victime d'agression sexuelle")
+- Hors-sujet total
+- Informations personnelles identifiables (adresse, nom complet, téléphone)
+
+Contenu à modérer : "${content}"
+
+Réponds UNIQUEMENT avec un JSON :
+{
+  "approved": true/false,
+  "reason": "explication courte",
+  "warning": true/false
+}`;
+
+    for (const model of GROQ_MODELS) {
+      try {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.1,
+            max_tokens: 200
+          })
+        });
+
+        if (!response.ok) continue;
+
+        const data = await response.json();
+        const result = JSON.parse(data.choices[0].message.content.replace(/```json|```/g, '').trim());
+        
+        return {
+          approved: result.approved,
+          reason: result.reason,
+          warning: result.warning || false,
+          model
+        };
+      } catch (error) {
+        continue;
+      }
+    }
+
+    return {
+      approved: true,
+      reason: 'All AI models failed - fail-open',
+      warning: false,
+      model: 'none'
+    };
+  }
+
+  async createUser(secretPhrase) {
+    const userId = this.generateId('CB');
+    const phraseHash = this.hashPhrase(secretPhrase);
     const now = Date.now();
-    
+
     await this.db.execute({
-      sql: 'INSERT INTO users (id, created_at, last_active) VALUES (?, ?, ?)',
-      args: [userId, now, now]
+      sql: 'INSERT INTO users (id, secret_phrase_hash, created_at) VALUES (?, ?, ?)',
+      args: [userId, phraseHash, now]
     });
-    
-    console.log('[BACKEND] Created anonymous user:', userId);
-    
+
     return { success: true, userId };
   }
 
-  async verifyUserID(userId) {
-    const result = await this.db.execute({
-      sql: 'SELECT * FROM users WHERE id = ?',
+  async verifyUser(input) {
+    if (input.startsWith('CB_')) {
+      const result = await this.db.execute({
+        sql: 'SELECT * FROM users WHERE id = ?',
+        args: [input]
+      });
+      
+      if (result.rows.length > 0) {
+        return { success: true, userId: input };
+      }
+    } else {
+      const phraseHash = this.hashPhrase(input);
+      const result = await this.db.execute({
+        sql: 'SELECT id FROM users WHERE secret_phrase_hash = ?',
+        args: [phraseHash]
+      });
+      
+      if (result.rows.length > 0) {
+        return { success: true, userId: result.rows[0].id };
+      }
+    }
+
+    return { success: false, message: 'Invalid ID or secret phrase' };
+  }
+
+  async createConfidence(data, headers) {
+    const userId = headers['x-user-id'];
+    if (!userId) return { success: false, message: 'Unauthorized' };
+
+    const user = await this.db.execute({
+      sql: 'SELECT premium FROM users WHERE id = ?',
       args: [userId]
     });
-    
-    if (result.rows.length === 0) {
-      return { success: false, message: 'ID introuvable' };
-    }
-    
-    // Update last active
-    await this.db.execute({
-      sql: 'UPDATE users SET last_active = ? WHERE id = ?',
-      args: [Date.now(), userId]
-    });
-    
-    return { success: true, user: result.rows[0] };
-  }
 
-  generateUserID() {
-    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    let id = 'CB_';
-    for (let i = 0; i < 8; i++) {
-      id += chars[Math.floor(Math.random() * chars.length)];
+    if (user.rows.length === 0) {
+      return { success: false, message: 'User not found' };
     }
-    return id;
-  }
 
-  // ========== CONFIDENCES ==========
-  
-  async getConfidences(query) {
-    const chapter = query.chapter || 'all';
+    const isPremium = user.rows[0].premium === 1;
+
+    if (!isPremium) {
+      const count = await this.db.execute({
+        sql: 'SELECT COUNT(*) as total FROM confidences WHERE user_id = ?',
+        args: [userId]
+      });
+
+      if (count.rows[0].total >= 20) {
+        return { success: false, message: 'Confidence limit reached. Upgrade to Premium for unlimited confidences.' };
+      }
+    }
+
+    const moderation = await this.moderateContent(data.content);
+
+    if (!moderation.approved) {
+      return {
+        success: false,
+        message: 'Content rejected by moderation',
+        reason: moderation.reason
+      };
+    }
+
+    const confId = this.generateId('conf');
     const now = Date.now();
-    
+    const expiresAt = isPremium ? now + (100 * 365 * 24 * 60 * 60 * 1000) : now + (90 * 24 * 60 * 60 * 1000);
+
+    await this.db.execute({
+      sql: 'INSERT INTO confidences (id, user_id, content, emotion, moderation_score, moderation_message, needs_review, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      args: [confId, userId, data.content, data.emotion, 1.0, moderation.reason, moderation.warning ? 0 : 0, now, expiresAt]
+    });
+
+    return {
+      success: true,
+      confidenceId: confId,
+      warning: moderation.warning
+    };
+  }
+
+  async getConfidences(chapter, userId) {
     let sql = `
-      SELECT 
-        c.*,
-        (SELECT COUNT(*) FROM reactions WHERE confidence_id = c.id AND type = 'soutiens') as reactions_soutiens,
-        (SELECT COUNT(*) FROM reactions WHERE confidence_id = c.id AND type = 'espoir') as reactions_espoir,
-        (SELECT COUNT(*) FROM reactions WHERE confidence_id = c.id AND type = 'compatis') as reactions_compatis,
-        (SELECT COUNT(*) FROM reactions WHERE confidence_id = c.id AND type = 'pas_seul') as reactions_pas_seul,
-        (SELECT COUNT(*) FROM reactions WHERE confidence_id = c.id AND type = 'courage') as reactions_courage,
-        (SELECT COUNT(*) FROM reactions WHERE confidence_id = c.id AND type = 'triste') as reactions_triste
+      SELECT c.*, 
+        (SELECT COUNT(*) FROM reactions WHERE confidence_id = c.id) as reaction_count,
+        (SELECT COUNT(*) FROM responses WHERE confidence_id = c.id) as response_count,
+        (SELECT type FROM reactions WHERE confidence_id = c.id AND user_id = ?) as user_reaction
       FROM confidences c
       WHERE c.expires_at > ?
     `;
-    
-    const args = [now];
-    
-    if (chapter !== 'all') {
+    const args = [userId || '', Date.now()];
+
+    if (chapter && chapter !== 'all') {
       sql += ' AND c.emotion = ?';
       args.push(chapter);
     }
-    
+
     sql += ' ORDER BY c.created_at DESC LIMIT 50';
-    
+
     const result = await this.db.execute({ sql, args });
-    
-    const confidences = await Promise.all(result.rows.map(async (row) => {
-      const responsesResult = await this.db.execute({
-        sql: 'SELECT * FROM responses WHERE confidence_id = ? ORDER BY created_at ASC',
-        args: [row.id]
-      });
-      
-      return {
-        id: row.id,
-        user_id: row.user_id,
-        content: row.content,
-        emotion: row.emotion,
-        created_at: row.created_at,
-        reactions: {
-          soutiens: Number(row.reactions_soutiens),
-          espoir: Number(row.reactions_espoir),
-          compatis: Number(row.reactions_compatis),
-          pas_seul: Number(row.reactions_pas_seul),
-          courage: Number(row.reactions_courage),
-          triste: Number(row.reactions_triste)
-        },
-        responses: responsesResult.rows.map(r => ({
-          id: r.id,
-          content: r.content,
-          avatar: r.avatar,
-          created_at: r.created_at
-        }))
-      };
-    }));
-    
-    console.log(`[BACKEND] Retrieved ${confidences.length} confidences`);
-    
-    return { success: true, data: confidences };
+
+    return {
+      success: true,
+      confidences: result.rows.map(row => ({
+        ...row,
+        settings: JSON.parse(row.settings || '{}')
+      }))
+    };
   }
 
-  async getConfidence(confidenceId) {
+  async getConfidence(id, userId) {
     const result = await this.db.execute({
-      sql: 'SELECT * FROM confidences WHERE id = ?',
-      args: [confidenceId]
+      sql: `
+        SELECT c.*, 
+          (SELECT COUNT(*) FROM reactions WHERE confidence_id = c.id) as reaction_count,
+          (SELECT type FROM reactions WHERE confidence_id = c.id AND user_id = ?) as user_reaction
+        FROM confidences c
+        WHERE c.id = ?
+      `,
+      args: [userId || '', id]
     });
-    
+
     if (result.rows.length === 0) {
-      return { success: false, message: 'Confidence introuvable' };
-    }
-    
-    const conf = result.rows[0];
-    
-    // Get reactions
-    const reactionsResult = await this.db.execute({
-      sql: 'SELECT type, COUNT(*) as count FROM reactions WHERE confidence_id = ? GROUP BY type',
-      args: [confidenceId]
-    });
-    
-    const reactions = {};
-    reactionsResult.rows.forEach(r => {
-      reactions[r.type] = Number(r.count);
-    });
-    
-    // Get responses
-    const responsesResult = await this.db.execute({
-      sql: 'SELECT * FROM responses WHERE confidence_id = ? ORDER BY created_at ASC',
-      args: [confidenceId]
-    });
-    
-    return {
-      success: true,
-      data: {
-        id: conf.id,
-        user_id: conf.user_id,
-        content: conf.content,
-        emotion: conf.emotion,
-        created_at: conf.created_at,
-        reactions,
-        responses: responsesResult.rows
-      }
-    };
-  }
-
-  async createConfidence(body, headers) {
-    const userId = headers['x-user-id'];
-    const { content, emotion } = body;
-    
-    if (!userId) {
-      return { success: false, message: 'User ID required' };
-    }
-    
-    if (!content || content.trim().length < 10) {
-      return { success: false, message: 'La confidence doit contenir au moins 10 caractères' };
-    }
-    
-    if (!emotion) {
-      return { success: false, message: 'Tonalité émotionnelle requise' };
-    }
-    
-    console.log('[BACKEND] Moderating confidence with AI...');
-    
-    const moderationResult = await this.moderateContent(content, 'confidence');
-    
-    if (!moderationResult.approved) {
-      console.log('[BACKEND] Confidence rejected by moderation');
-      return {
-        success: false,
-        moderated: true,
-        published: false,
-        moderationMessage: moderationResult.message
-      };
-    }
-    
-    const confidenceId = 'conf_' + Math.random().toString(36).substr(2, 9);
-    const now = Date.now();
-    const expiresAt = now + (90 * 24 * 60 * 60 * 1000);
-    
-    await this.db.execute({
-      sql: `INSERT INTO confidences 
-            (id, user_id, content, emotion, moderation_score, moderation_message, created_at, expires_at) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      args: [confidenceId, userId, content, emotion, moderationResult.score, moderationResult.message, now, expiresAt]
-    });
-    
-    console.log('[BACKEND] Confidence created:', confidenceId);
-    
-    return {
-      success: true,
-      moderated: moderationResult.warning,
-      published: true,
-      moderationMessage: moderationResult.message,
-      confidenceId
-    };
-  }
-
-  async deleteConfidence(confidenceId, headers) {
-    const userId = headers['x-user-id'];
-    
-    if (!userId || !confidenceId) {
-      return { success: false, message: 'Missing required fields' };
-    }
-    
-    const confidence = await this.db.execute({
-      sql: 'SELECT user_id FROM confidences WHERE id = ?',
-      args: [confidenceId]
-    });
-    
-    if (confidence.rows.length === 0) {
       return { success: false, message: 'Confidence not found' };
     }
-    
-    if (confidence.rows[0].user_id !== userId) {
-      return { success: false, message: 'Unauthorized' };
+
+    const responses = await this.db.execute({
+      sql: `
+        SELECT r.*,
+          (SELECT COUNT(*) FROM response_reactions WHERE response_id = r.id) as reaction_count,
+          (SELECT type FROM response_reactions WHERE response_id = r.id AND user_id = ?) as user_reaction
+        FROM responses r
+        WHERE r.confidence_id = ?
+        ORDER BY r.created_at ASC
+      `,
+      args: [userId || '', id]
+    });
+
+    return {
+      success: true,
+      confidence: result.rows[0],
+      responses: responses.rows
+    };
+  }
+
+  async updateConfidence(id, data, headers) {
+    const userId = headers['x-user-id'];
+    if (!userId) return { success: false, message: 'Unauthorized' };
+
+    const conf = await this.db.execute({
+      sql: 'SELECT user_id FROM confidences WHERE id = ?',
+      args: [id]
+    });
+
+    if (conf.rows.length === 0 || conf.rows[0].user_id !== userId) {
+      return { success: false, message: 'Not authorized' };
     }
-    
+
+    const moderation = await this.moderateContent(data.content);
+
+    if (!moderation.approved) {
+      return {
+        success: false,
+        message: 'Content rejected by moderation',
+        reason: moderation.reason
+      };
+    }
+
     await this.db.execute({
-      sql: 'DELETE FROM reactions WHERE confidence_id = ?',
-      args: [confidenceId]
+      sql: 'UPDATE confidences SET content = ?, emotion = ?, moderation_score = ?, moderation_message = ? WHERE id = ?',
+      args: [data.content, data.emotion, 1.0, moderation.reason, id]
     });
-    
-    await this.db.execute({
-      sql: 'DELETE FROM responses WHERE confidence_id = ?',
-      args: [confidenceId]
+
+    return { success: true, warning: moderation.warning };
+  }
+
+  async deleteConfidence(id, headers) {
+    const userId = headers['x-user-id'];
+    if (!userId) return { success: false, message: 'Unauthorized' };
+
+    const conf = await this.db.execute({
+      sql: 'SELECT user_id FROM confidences WHERE id = ?',
+      args: [id]
     });
-    
+
+    if (conf.rows.length === 0 || conf.rows[0].user_id !== userId) {
+      return { success: false, message: 'Not authorized' };
+    }
+
     await this.db.execute({
       sql: 'DELETE FROM confidences WHERE id = ?',
-      args: [confidenceId]
+      args: [id]
     });
-    
-    console.log('[BACKEND] Confidence deleted:', confidenceId);
-    
+
     return { success: true };
   }
 
-  async updateConfidence(confidenceId, body, headers) {
+  async toggleReaction(data, headers) {
     const userId = headers['x-user-id'];
-    const { content } = body;
-    
-    if (!userId || !confidenceId || !content) {
-      return { success: false, message: 'Missing required fields' };
-    }
-    
-    const confidence = await this.db.execute({
-      sql: 'SELECT user_id FROM confidences WHERE id = ?',
-      args: [confidenceId]
-    });
-    
-    if (confidence.rows.length === 0) {
-      return { success: false, message: 'Confidence not found' };
-    }
-    
-    if (confidence.rows[0].user_id !== userId) {
-      return { success: false, message: 'Unauthorized' };
-    }
-    
-    console.log('[BACKEND] Moderating updated confidence...');
-    const moderationResult = await this.moderateContent(content, 'confidence');
-    
-    if (!moderationResult.approved) {
-      return {
-        success: false,
-        message: moderationResult.message
-      };
-    }
-    
-    await this.db.execute({
-      sql: 'UPDATE confidences SET content = ?, moderation_score = ?, moderation_message = ? WHERE id = ?',
-      args: [content, moderationResult.score, moderationResult.message, confidenceId]
-    });
-    
-    console.log('[BACKEND] Confidence updated:', confidenceId);
-    
-    return { success: true };
-  }
+    if (!userId) return { success: false, message: 'Unauthorized' };
 
-  // ========== REACTIONS ==========
-  
-  async addReaction(body, headers) {
-    const userId = headers['x-user-id'];
-    const { confidenceId, reactionType } = body;
-    
-    if (!userId || !confidenceId || !reactionType) {
-      return { success: false, message: 'Missing required fields' };
-    }
-    
-    try {
-      const existing = await this.db.execute({
-        sql: 'SELECT * FROM reactions WHERE confidence_id = ? AND user_id = ?',
-        args: [confidenceId, userId]
-      });
-      
-      if (existing.rows.length > 0 && existing.rows[0].type === reactionType) {
+    const existing = await this.db.execute({
+      sql: 'SELECT * FROM reactions WHERE confidence_id = ? AND user_id = ?',
+      args: [data.confidenceId, userId]
+    });
+
+    if (existing.rows.length > 0) {
+      if (existing.rows[0].type === data.type) {
         await this.db.execute({
           sql: 'DELETE FROM reactions WHERE confidence_id = ? AND user_id = ?',
-          args: [confidenceId, userId]
+          args: [data.confidenceId, userId]
         });
-        
-        console.log('[BACKEND] Reaction removed (toggle):', reactionType);
         return { success: true, action: 'removed' };
+      } else {
+        await this.db.execute({
+          sql: 'UPDATE reactions SET type = ? WHERE confidence_id = ? AND user_id = ?',
+          args: [data.type, data.confidenceId, userId]
+        });
+        return { success: true, action: 'updated' };
       }
-      
-      await this.db.execute({
-        sql: 'DELETE FROM reactions WHERE confidence_id = ? AND user_id = ?',
-        args: [confidenceId, userId]
-      });
-      
-      const reactionId = 'react_' + Math.random().toString(36).substr(2, 9);
-      const now = Date.now();
-      
-      await this.db.execute({
-        sql: 'INSERT INTO reactions (id, confidence_id, user_id, type, created_at) VALUES (?, ?, ?, ?, ?)',
-        args: [reactionId, confidenceId, userId, reactionType, now]
-      });
-      
-      console.log('[BACKEND] Reaction added:', reactionType);
-      
-      return { success: true, action: 'added' };
-      
-    } catch (error) {
-      console.error('[BACKEND] Reaction error:', error);
-      return { success: false, message: 'Database error' };
     }
+
+    const reactionId = this.generateId('react');
+    await this.db.execute({
+      sql: 'INSERT INTO reactions (id, confidence_id, user_id, type, created_at) VALUES (?, ?, ?, ?, ?)',
+      args: [reactionId, data.confidenceId, userId, data.type, Date.now()]
+    });
+
+    return { success: true, action: 'added' };
   }
 
-  // ========== RESPONSES ==========
-  
-  async addResponse(body, headers) {
+  async createResponse(data, headers) {
     const userId = headers['x-user-id'];
-    const { confidenceId, content } = body;
-    
-    if (!userId || !confidenceId || !content) {
-      return { success: false, message: 'Missing required fields' };
-    }
-    
-    if (content.trim().length < 5) {
-      return { success: false, message: 'La réponse doit contenir au moins 5 caractères' };
-    }
-    
-    console.log('[BACKEND] Moderating response with AI...');
-    
-    const moderationResult = await this.moderateContent(content, 'response');
-    
-    if (!moderationResult.approved) {
-      console.log('[BACKEND] Response rejected by moderation');
+    if (!userId) return { success: false, message: 'Unauthorized' };
+
+    const moderation = await this.moderateContent(data.content);
+
+    if (!moderation.approved) {
       return {
         success: false,
-        message: moderationResult.message
+        message: 'Content rejected by moderation',
+        reason: moderation.reason
       };
     }
-    
-    const avatars = ['moon', 'sun', 'leaf', 'flower', 'butterfly', 'wave', 'sparkles', 'star'];
-    const avatar = avatars[Math.floor(Math.random() * avatars.length)];
-    
-    const responseId = 'resp_' + Math.random().toString(36).substr(2, 9);
-    const now = Date.now();
-    
+
+    const responseId = this.generateId('resp');
+    const avatar = AVATARS[Math.floor(Math.random() * AVATARS.length)];
+
     await this.db.execute({
-      sql: `INSERT INTO responses 
-            (id, confidence_id, user_id, content, avatar, moderation_score, created_at) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      args: [responseId, confidenceId, userId, content, avatar, moderationResult.score, now]
+      sql: 'INSERT INTO responses (id, confidence_id, user_id, content, avatar, moderation_score, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      args: [responseId, data.confidenceId, userId, data.content, avatar, 1.0, Date.now()]
     });
-    
-    console.log('[BACKEND] Response created:', responseId);
-    
-    return {
-      success: true,
-      responseId
-    };
+
+    return { success: true, responseId };
   }
 
-  // ========== USER PROFILE ==========
-  
-  async getUserProfile(headers) {
+  async toggleResponseReaction(data, headers) {
     const userId = headers['x-user-id'];
-    
-    if (!userId) {
-      return { success: false, message: 'User ID required' };
+    if (!userId) return { success: false, message: 'Unauthorized' };
+
+    const existing = await this.db.execute({
+      sql: 'SELECT * FROM response_reactions WHERE response_id = ? AND user_id = ?',
+      args: [data.responseId, userId]
+    });
+
+    if (existing.rows.length > 0) {
+      if (existing.rows[0].type === data.type) {
+        await this.db.execute({
+          sql: 'DELETE FROM response_reactions WHERE response_id = ? AND user_id = ?',
+          args: [data.responseId, userId]
+        });
+        return { success: true, action: 'removed' };
+      } else {
+        await this.db.execute({
+          sql: 'UPDATE response_reactions SET type = ? WHERE response_id = ? AND user_id = ?',
+          args: [data.type, data.responseId, userId]
+        });
+        return { success: true, action: 'updated' };
+      }
     }
-    
+
+    const reactionId = this.generateId('rreact');
+    await this.db.execute({
+      sql: 'INSERT INTO response_reactions (id, response_id, user_id, type, created_at) VALUES (?, ?, ?, ?, ?)',
+      args: [reactionId, data.responseId, userId, data.type, Date.now()]
+    });
+
+    return { success: true, action: 'added' };
+  }
+
+  async getProfile(headers) {
+    const userId = headers['x-user-id'];
+    if (!userId) return { success: false, message: 'Unauthorized' };
+
+    const user = await this.db.execute({
+      sql: 'SELECT * FROM users WHERE id = ?',
+      args: [userId]
+    });
+
+    if (user.rows.length === 0) {
+      return { success: false, message: 'User not found' };
+    }
+
     const confidences = await this.db.execute({
-      sql: 'SELECT * FROM confidences WHERE user_id = ? ORDER BY created_at DESC',
+      sql: `
+        SELECT c.id, c.content, c.emotion, c.created_at,
+          (SELECT COUNT(*) FROM reactions WHERE confidence_id = c.id) as reaction_count,
+          (SELECT COUNT(*) FROM responses WHERE confidence_id = c.id) as response_count
+        FROM confidences c
+        WHERE c.user_id = ?
+        ORDER BY c.created_at DESC
+      `,
       args: [userId]
     });
-    
+
     const totalReactions = await this.db.execute({
-      sql: `SELECT COUNT(*) as count FROM reactions 
-            WHERE confidence_id IN (SELECT id FROM confidences WHERE user_id = ?)`,
+      sql: 'SELECT COUNT(*) as total FROM reactions r JOIN confidences c ON r.confidence_id = c.id WHERE c.user_id = ?',
       args: [userId]
     });
-    
+
     const totalResponses = await this.db.execute({
-      sql: `SELECT COUNT(*) as count FROM responses 
-            WHERE confidence_id IN (SELECT id FROM confidences WHERE user_id = ?)`,
+      sql: 'SELECT COUNT(*) as total FROM responses r JOIN confidences c ON r.confidence_id = c.id WHERE c.user_id = ?',
       args: [userId]
     });
-    
+
+    const helpedCount = await this.db.execute({
+      sql: 'SELECT COUNT(*) as total FROM (SELECT DISTINCT confidence_id FROM reactions WHERE user_id = ? UNION SELECT DISTINCT confidence_id FROM responses WHERE user_id = ?)',
+      args: [userId, userId]
+    });
+
     return {
       success: true,
-      data: {
-        userId,
-        confidencesCount: confidences.rows.length,
-        reactionsCount: totalReactions.rows[0].count,
-        responsesCount: totalResponses.rows[0].count,
+      profile: {
+        ...user.rows[0],
+        settings: JSON.parse(user.rows[0].settings || '{}'),
+        stats: {
+          confidencesCount: confidences.rows.length,
+          reactionsReceived: totalReactions.rows[0].total,
+          responsesReceived: totalResponses.rows[0].total,
+          peopleHelped: helpedCount.rows[0].total
+        },
         confidences: confidences.rows
       }
     };
   }
 
-  // ========== MODERATION IA ==========
-  
-  async moderateContent(content, type) {
-    if (!this.aiApiKey) {
-      console.log('[BACKEND] No AI key, skipping moderation (dev mode)');
-      return {
-        approved: true,
-        score: 0.9,
-        warning: false,
-        message: 'Moderation skipped (dev mode)'
-      };
-    }
-    
-    const prompt = type === 'confidence' 
-      ? this.getModerationPromptConfidence(content)
-      : this.getModerationPromptResponse(content);
-    
-    for (let i = 0; i < this.groqModels.length; i++) {
-      const model = this.groqModels[i];
-      
-      try {
-        console.log(`[BACKEND] Calling Groq API (model: ${model})...`);
-        
-        const response = await fetch(this.aiEndpoint, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${this.aiApiKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: model,
-            messages: [
-              { 
-                role: 'system', 
-                content: 'Tu es un modérateur bienveillant pour Confidence Book. Réponds UNIQUEMENT par APPROVED ou REJECTED: raison.' 
-              },
-              { 
-                role: 'user', 
-                content: prompt 
-              }
-            ],
-            temperature: 0.2,
-            max_tokens: 200
-          })
-        });
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`[BACKEND] Model ${model} failed:`, response.status, errorText);
-          
-          if (i === this.groqModels.length - 1) {
-            console.log('[BACKEND] All models failed, approving by default (fail-open)');
-            return {
-              approved: true,
-              score: 0.7,
-              warning: false,
-              message: 'Moderation service unavailable'
-            };
-          }
-          
-          continue;
-        }
-        
-        const data = await response.json();
-        const aiResponse = data.choices[0].message.content.trim();
-        
-        console.log(`[BACKEND] AI Response (${model}):`, aiResponse);
-        
-        if (aiResponse.startsWith('APPROVED')) {
-          const warningMatch = aiResponse.match(/WARNING: (.+)/);
-          return {
-            approved: true,
-            score: 0.8,
-            warning: !!warningMatch,
-            message: warningMatch ? warningMatch[1] : 'Contenu validé'
-          };
-        } else if (aiResponse.startsWith('REJECTED')) {
-          const reason = aiResponse.replace('REJECTED:', '').trim();
-          return {
-            approved: false,
-            score: 0.2,
-            warning: false,
-            message: reason || 'Contenu non conforme aux règles de bienveillance'
-          };
-        }
-        
-        return {
-          approved: true,
-          score: 0.7,
-          warning: false,
-          message: 'Moderation completed'
-        };
-        
-      } catch (error) {
-        console.error(`[BACKEND] Model ${model} error:`, error.message);
-        
-        if (i === this.groqModels.length - 1) {
-          console.log('[BACKEND] All models failed, approving by default (fail-open)');
-          return {
-            approved: true,
-            score: 0.7,
-            warning: false,
-            message: 'Moderation error, content approved by default'
-          };
-        }
-        
-        continue;
-      }
-    }
-    
-    return {
-      approved: true,
-      score: 0.7,
-      warning: false,
-      message: 'Moderation completed with fallback'
-    };
+  async updateSettings(data, headers) {
+    const userId = headers['x-user-id'];
+    if (!userId) return { success: false, message: 'Unauthorized' };
+
+    await this.db.execute({
+      sql: 'UPDATE users SET settings = ? WHERE id = ?',
+      args: [JSON.stringify(data), userId]
+    });
+
+    return { success: true };
   }
 
-  getModerationPromptConfidence(content) {
-    return `Tu es un modérateur bienveillant pour Confidence Book, une plateforme de soutien émotionnel anonyme.
+  async deleteAccount(headers) {
+    const userId = headers['x-user-id'];
+    if (!userId) return { success: false, message: 'Unauthorized' };
 
-MISSION: Déterminer si ce message respecte nos règles.
+    await this.db.execute({
+      sql: 'DELETE FROM users WHERE id = ?',
+      args: [userId]
+    });
 
-✅ TOUJOURS ACCEPTER:
-- Tristesse, colère, peur, solitude, désespoir
-- Pensées suicidaires (c'est un appel à l'aide légitime)
-- Récits de trauma, abus, deuil, rupture
-- Remise en question identitaire, spirituelle
-- Langage cru mais émotionnel
-
-⚠️ ACCEPTER AVEC WARNING:
-- Mentions explicites de suicide → "APPROVED WARNING: Ajoutez ressources d'aide (3114, etc.)"
-- Colère intense mais non violente → "APPROVED WARNING: Rappeler la bienveillance"
-
-❌ REJETER:
-- Violence explicite: "Je vais le tuer", plans pour blesser
-- Haine/discrimination: racisme, homophobie, sexisme
-- Spam/publicité
-- Contenu sexuel explicite (sauf mention de trauma)
-- Hors-sujet total (météo, recettes, etc.)
-- Infos personnelles: adresse, nom complet, téléphone
-
-ZONE GRISE (Accepter avec nuance):
-- Insultes ex: "Mon ex est un(e) con(ne)" → APPROVED
-- Fantasmes vengeance: "J'aimerais qu'il souffre" → APPROVED
-- Critique religion: "Dieu n'existe pas" → APPROVED
-
-MESSAGE À ANALYSER:
-"${content}"
-
-RÉPONDS UNIQUEMENT PAR:
-- "APPROVED"
-- "APPROVED WARNING: [message]"
-- "REJECTED: [raison courte et bienveillante]"
-
-Réponse:`;
+    return { success: true };
   }
 
-  getModerationPromptResponse(content) {
-    return `Tu es un modérateur pour Confidence Book. Analyse cette RÉPONSE à une confidence.
-
-✅ ACCEPTER:
-- Empathie, soutien, conseils bienveillants
-- Partage d'expérience
-
-❌ REJETER:
-- Jugement, minimisation
-- Conseils dangereux
-- Prosélytisme, spam
-
-RÉPONSE:
-"${content}"
-
-RÉPONDS PAR:
-- "APPROVED"
-- "REJECTED: [raison]"
-
-Réponse:`;
+  async cleanExpiredConfidences() {
+    const now = Date.now();
+    await this.db.execute({
+      sql: 'DELETE FROM confidences WHERE expires_at < ? AND user_id IN (SELECT id FROM users WHERE premium = 0)',
+      args: [now]
+    });
   }
 
-  // ========== HEALTH CHECK ==========
-  
   async healthCheck() {
-    const checks = {
-      timestamp: new Date().toISOString(),
-      status: 'ok',
-      services: {}
+    return {
+      success: true,
+      status: 'healthy',
+      timestamp: Date.now()
     };
-    
-    try {
-      await this.db.execute('SELECT 1');
-      checks.services.database = 'connected';
-    } catch (error) {
-      checks.services.database = 'offline';
-      checks.status = 'degraded';
-    }
-    
-    checks.services.ai = this.aiApiKey ? 'configured' : 'dev-mode';
-    
-    return checks;
   }
 }
