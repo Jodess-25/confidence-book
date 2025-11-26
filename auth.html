@@ -105,8 +105,11 @@
           
           document.getElementById('success-modal').classList.remove('hidden');
           lucide.createIcons();
+        } else {
+          alert(data.message || t('common.error', lang));
         }
       } catch (error) {
+        console.error('Create account error:', error);
         alert(t('common.error', lang));
       }
     }
@@ -132,6 +135,7 @@
           alert(t('auth.error_invalid', lang));
         }
       } catch (error) {
+        console.error('Login error:', error);
         alert(t('common.error', lang));
       }
     }
