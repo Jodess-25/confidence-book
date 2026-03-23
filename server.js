@@ -2,6 +2,7 @@ import { createClient } from '@libsql/client';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
 const service = new BackendService();
+import { BackendService } from './BackendService.js';
 service.init();
 dotenv.config();
 
