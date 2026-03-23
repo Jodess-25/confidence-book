@@ -212,32 +212,38 @@
             document.getElementById('account-page').classList.add('hidden');
         }
 
-        async function createAccount() {
-            document.getElementById('rules-page').classList.add('hidden');
-            document.getElementById('account-page').classList.remove('hidden');
+       async function createAccount() {
+    document.getElementById('rules-page').classList.add('hidden');
+    document.getElementById('account-page').classList.remove('hidden');
+    
+    // On génère une phrase secrète aléatoire pour le hachage
+    const temporarySecret = Math.random().toString(36).substring(2, 15);
+
+    try {
+        const response = await fetch('/api/users/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ secretPhrase: temporarySecret })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            currentUserId = result.userId;
+            document.getElementById('user-id-display').textContent = result.userId;
             
-            // Appel API pour créer un compte
-            try {
-                const response = await fetch('/api/auth/anonymous', {
-                    method: 'POST'
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    currentUserId = result.userId;
-                    document.getElementById('user-id-display').textContent = result.userId;
-                    
-                    // Sauvegarder dans localStorage
-                    localStorage.setItem('confidence_user_id', result.userId);
-                } else {
-                    alert('Erreur lors de la création du compte');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Erreur de connexion au serveur');
-            }
+            // Sauvegarder l'ID dans le navigateur
+            localStorage.setItem('confidence_user_id', result.userId);
+        } else {
+            alert('Erreur lors de la création du compte : ' + result.message);
         }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Erreur de connexion au serveur (vérifie que node server.js est lancé)');
+    }
+}
 
         function copyUserId() {
             const userId = document.getElementById('user-id-display').textContent;
